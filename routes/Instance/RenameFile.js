@@ -46,7 +46,7 @@ router.get("/instance/:id/files/rename/:file/:newfile", async (req, res) => {
       method: "post",
       url: `http://${instance.Node.address}:${instance.Node.port}/fs/${instance.VolumeId}/files/rename/${file}/${newfile}${query}`,
       auth: {
-        username: "Skyport",
+        username: "Impulse",
         password: instance.Node.apiKey,
       },
       headers: {
@@ -68,7 +68,7 @@ router.get("/instance/:id/files/rename/:file/:newfile", async (req, res) => {
           error: errorMessage,
           req,
           user: req.user,
-          name: (await db.get("name")) || "Skyport",
+          name: (await db.get("name")) || "Impulse",
         });
     }
   } else {

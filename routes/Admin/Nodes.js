@@ -13,7 +13,7 @@ async function checkNodeStatus(node) {
       method: "get",
       url: "http://" + node.address + ":" + node.port + "/",
       auth: {
-        username: "Skyport",
+        username: "Impulse",
         password: node.apiKey,
       },
       headers: {
@@ -83,7 +83,7 @@ router.get("/admin/node/:id/stats", isAdmin, async (req, res) => {
 
   try {
     const response = await axios.get(
-      `http://Skyport:${node.apiKey}@${node.address}:${node.port}/stats`
+      `http://Impulse:${node.apiKey}@${node.address}:${node.port}/stats`
     );
     stats = response.data;
 
@@ -214,7 +214,7 @@ router.post("/nodes/delete", isAdmin, async (req, res) => {
 
         try {
           await axios.get(
-            `http://Skyport:${node.apiKey}@${node.address}:${node.port}/instances/purge/all`
+            `http://Impulse:${node.apiKey}@${node.address}:${node.port}/instances/purge/all`
           );
         } catch (apiError) {
           log.error("Error calling purge API:", apiError);
@@ -361,7 +361,7 @@ router.post("/admin/nodes/radar/check", isAdmin, async (req, res) => {
               `http://${node.address}:${node.port}/check/all`,
               {
                 auth: {
-                  username: "Skyport",
+                  username: "Impulse",
                   password: node.apiKey,
                 },
               }

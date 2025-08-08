@@ -31,7 +31,7 @@ router.post("/instance/:id/power", async (req, res) => {
       {
         method: "POST",
         auth: {
-          username: "Skyport",
+          username: "Impulse",
           password: instance.Node.apiKey,
         },
         headers: {

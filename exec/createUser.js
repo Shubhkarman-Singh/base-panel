@@ -97,7 +97,7 @@ async function main() {
     email = args.email;
     password = args.password;
   } else {
-    log.init("Create a new *admin* user for the Skyport Panel:");
+    log.init("Create a new *admin* user for the Impulse Panel:");
     log.init("You can make regular users from the admin -> users page.");
 
     username = await askQuestion("Username: ");

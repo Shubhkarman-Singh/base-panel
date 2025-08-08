@@ -112,7 +112,7 @@ async function prepareRequestData(
     method: "post",
     url: `http://${node.address}:${node.port}/instances/redeploy/${containerId}/${id}`,
     auth: {
-      username: "Skyport",
+      username: "Impulse",
       password: node.apiKey,
     },
     headers: {

@@ -6,7 +6,7 @@ const program = new Command();
 
 program
   .version("0.1.0-beta6")
-  .description("Command Line Interface for the Skyport Panel");
+  .description("Command Line Interface for the Impulse Panel");
 
 program
   .command("seed")
@@ -53,7 +53,7 @@ program
     async function performSeeding() {
       try {
         const imagesIndexResponse = await axios.get(
-          "https://raw.githubusercontent.com/skyportlabs/images_v2/main/seed/0.1.0-beta2.json"
+          "https://raw.githubusercontent.com/impulseOSS/images_v2/main/seed/0.1.0-beta2.json"
         );
         const imageUrls = imagesIndexResponse.data;
         let imageDataArray = [];
@@ -184,7 +184,7 @@ program
     }
 
     async function main() {
-      log.init("create a new *admin* user for the skyport panel:");
+      log.init("create a new *admin* user for the impulse panel:");
       log.init("you can make regular users from the admin -> users page!");
       const username = await askQuestion("username: ");
       const email = await askQuestion("email: ");

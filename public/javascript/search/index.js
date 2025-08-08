@@ -1,18 +1,17 @@
 console.log(`
-  __                          __ 
-_____/ /____  ______  ____  _____/ /_
-/ ___/ //_/ / / / __ \\/ __ \\/ ___/ __/
-(__  ) ,< / /_/ / /_/ / /_/ / /  / /_  
-/____/_/|_|\\__, / .___/\\____/_/   \\__/  
-   /____/_/                  /   
-         /   
+  _                      _          
+ (_)_ __ ___  _ __  _   _| |___  ___ 
+ | | '_ \` _ \\| '_ \\| | | | / __|/ _ \\
+ | | | | | | | |_) | |_| | \\__ \\  __/
+ |_|_| |_| |_| .__/ \\__,_|_|___/\\___|
+             |_|                    
 
 
-https://github.com/skyport-team
-https://skyport.dev
+https://github.com/impulseOSS
+https://impulse.dev
 
 
-(c) 2024 Matt James and contributors.
+(c) 2024 ImpulseOSS and contributors.
 `);
 
 const searchModal = document.getElementById("searchModal");

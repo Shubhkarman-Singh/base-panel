@@ -179,11 +179,11 @@
         try {
           if (isValidJson(event.data)) stats = JSON.parse(event.data);
         } catch (e) {
-          if (event.data.includes('The skyportd instance appears to be down. Retrying...')) {
+          if (event.data.includes('The impulsed instance appears to be down. Retrying...')) {
             statusBg.classList.remove('bg-neutral-600/20');
             statusBg.classList.add('bg-yellow-600/10');
             statusElement.className = 'text-orange-500';
-            statusElement.textContent = 'Skyportd is Offline!';
+            statusElement.textContent = 'Impulsed is Offline!';
             socket.close();
             return;
           } else if (event.data.includes('Container not found')) {

@@ -64,7 +64,7 @@ router.post(
         headers: {
           ...formData.getHeaders(),
           Authorization: `Basic ${Buffer.from(
-            "Skyport:" + instance.Node.apiKey
+            "Impulse:" + instance.Node.apiKey
           ).toString("base64")}`,
         },
       });
