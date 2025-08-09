@@ -1,5 +1,5 @@
 {
-  "watch": ["routes/**/*.js", "plugins/**/*.js"],
+  "watch": ["routes/**/*.js", "plugins/**/*.js", "config.json"],
   "ext": "js,ejs",
   "ignore": [
     "node_modules",

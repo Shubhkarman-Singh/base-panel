@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= name %> - Authentication</title>
+  <link href="/assets/tailwind.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.fontshare.com">
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,300,600,400,700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'General Sans'" class="bg-[#141414] h-full">
+<div class="min-h-full flex">
+  <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+    <div class="mx-auto w-full max-w-sm lg:w-96">
+      <div>
+        <% if (logo == true) { %><img class="h-12 w-auto rounded-xl" src="/assets/logo.png"> <% } %>
+        <h2 class="<% if (logo == true) { %>mt-6<% } %> text-3xl font-medium text-white">Welcome back</h2>
+        <p class="mt-2 text-sm font-normal text-neutral-500">
+          Sign in to continue to <%= name %>
+        </p>
+        
+        <!-- Buttons Container -->
+        <div class="mt-6 space-y-4">
+          <button type="button" class="w-full flex items-center py-2 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-gray-600 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500 transition relative">
+            <div class="absolute left-4">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="#6B7280">
+                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128.08.08 0 0 1 .011-.008c.127-.094.25-.194.368-.3a.077.077 0 0 1 .078-.01c3.928 1.8 8.18 1.8 12.062 0a.077.077 0 0 1 .078.01c.12.105.243.206.37.3a.077.077 0 0 1-.006.136 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.04.106c.36.698.772 1.362 1.225 1.993a.077.077 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.548-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.42 2.157-2.42 1.21 0 2.175 1.096 2.157 2.42 0 1.334-.956 2.42-2.157 2.42zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.42 2.157-2.42 1.21 0 2.175 1.096 2.157 2.42 0 1.334-.946 2.42-2.157 2.42z"/>
+              </svg>
+            </div>
+            <span class="w-full text-center">Continue with Discord OAuth2</span>
+          </button>
+          
+          <button type="button" class="w-full flex items-center py-2 px-4 border border-transparent rounded-xl shadow-sm text-sm font-medium text-white bg-neutral-800 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500 transition relative">
+            <div class="absolute left-4">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+              </svg>
+            </div>
+            <span class="w-full text-center">Sign in with passkey</span>
+          </button>
+          
+          <!-- Auth Error Messages -->
+          <% if (typeof error !== 'undefined' && error) { %>
+            <div class="mt-4 p-3 rounded-lg bg-red-900/30 border border-red-800 text-red-200 text-sm">
+              <% switch(error) { 
+                case 'access_denied': %>
+                  <p>❌ Authentication was denied. Please try again or use another method.</p>
+                  <% break; %>
+                case 'server_error': %>
+                  <p>🔌 Server error occurred. Please try again later.</p>
+                  <% break; %>
+                case 'temporarily_unavailable': %>
+                  <p>⏳ Service is temporarily unavailable. Please try again later.</p>
+                  <% break; %>
+                case 'invalid_request': %>
+                  <p>⚠️ Invalid authentication request. Please try again.</p>
+                  <% break; %>
+                case 'unauthorized_client': %>
+                  <p>🔑 Unauthorized client. Please contact support.</p>
+                  <% break; %>
+                case 'unsupported_response_type': %>
+                  <p>🔄 Unsupported response type. Please try another method.</p>
+                  <% break; %>
+                case 'invalid_scope': %>
+                  <p>📋 Invalid scope requested. Please contact support.</p>
+                  <% break; %>
+                case 'invalid_token': %>
+                  <p>🔑 Invalid or expired session. Please sign in again.</p>
+                  <% break; %>
+                case 'session_expired': %>
+                  <p>⏱️ Your session has expired. Please sign in again.</p>
+                  <% break; %>
+                default: %>
+                  <p>❌ An error occurred during authentication. Please try again.</p>
+              <% } %>
+              <% if (error_description) { %>
+                <p class="mt-1 text-xs opacity-80"><%= error_description %></p>
+              <% } %>
+            </div>
+          <% } %>
+          
+          <!-- Divider with text -->
+          <div class="relative my-6">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-neutral-700"></div>
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="px-2 text-neutral-400 bg-[#141414]">Or use an <%= name %> account</span>
+            </div>
+          </div>
+          
+          <!-- Login and Register Buttons -->
+          <div class="flex gap-4 mt-4">
+            <a href="/login" class="flex-1 flex justify-center py-2 px-4 border border-neutral-500/40 rounded-xl shadow-sm text-sm font-medium text-white hover:bg-neutral-800/70 hover:border-neutral-400 hover:scale-[1.02] transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500">
+              Login
+            </a>
+            <a href="/register" class="flex-1 flex justify-center py-2 px-4 border border-neutral-500/40 rounded-xl shadow-sm text-sm font-medium text-white hover:bg-neutral-800/70 hover:border-neutral-400 hover:scale-[1.02] transform transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500">
+              Register
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hidden lg:block relative w-0 flex-1">
+    <img class="absolute inset-0 h-full w-full object-cover" src="/assets/bg.jpg" alt="">
+  </div>
+</div>
+</body>
+</html>

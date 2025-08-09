@@ -23,6 +23,134 @@ const saltRounds = 10;
 const router = express.Router();
 
 /**
+ * Middleware to ensure user is coming from auth flow
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
+ */
+const enforceAuthFlow = (req, res, next) => {
+  // Debug log
+  console.log('Auth Flow Check:', {
+    path: req.path,
+    session: req.session,
+    user: req.user ? 'Authenticated' : 'Not authenticated',
+    referer: req.headers.referer,
+    host: req.headers.host
+  });
+
+  // If user is already authenticated, redirect to instances
+  if (req.user) {
+    console.log('User already authenticated, redirecting to /instances');
+    return res.redirect('/instances');
+  }
+
+  // Check for valid auth flow token AND valid referer
+  const isFromValidSource = () => {
+    // For API/redirect scenarios where referer might not be set
+    if (!req.headers.referer) return false;
+    
+    try {
+      const refererUrl = new URL(req.headers.referer);
+      const appHost = req.headers.host;
+      
+      // Check if coming from the same host and from /auth path
+      return refererUrl.host === appHost && 
+             (refererUrl.pathname === '/auth' || 
+              refererUrl.pathname === '/auth/');
+    } catch (e) {
+      console.error('Error parsing referer:', e);
+      return false;
+    }
+  };
+
+  const hasValidAuthFlow = req.session && req.session.authFlow === 'started';
+  const isValidSource = isFromValidSource();
+
+  console.log('Auth validation:', {
+    hasValidAuthFlow,
+    isValidSource,
+    referer: req.headers.referer
+  });
+
+  // Only allow access if coming from a valid source AND has valid auth flow
+  if (hasValidAuthFlow && isValidSource) {
+    console.log('Valid auth flow and source, allowing access to', req.path);
+    // Reset session expiration
+    req.session.touch();
+    return next();
+  }
+
+  console.log('Invalid auth flow or source, redirecting to /auth');
+  // Clear any existing auth state
+  if (req.session) {
+    req.session.authFlow = null;
+  }
+  
+  // Redirect to auth page with a flag to show error if needed
+  const redirectUrl = req.path === '/login' || req.path === '/register' 
+    ? '/auth?error=invalid_source'
+    : '/auth';
+    
+  return res.redirect(redirectUrl);
+};
+
+// Main auth page - starts the auth flow
+router.get('/auth', async (req, res) => {
+  if (req.user) {
+    return res.redirect('/instances');
+  }
+  
+  try {
+    // Start auth flow with proper session handling
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Session regeneration error:', err);
+        return res.status(500).send('Internal Server Error');
+      }
+      
+      // Set session variables
+      req.session.authFlow = 'started';
+      req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
+      
+      // Save the session before sending the response
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          return res.status(500).send('Internal Server Error');
+        }
+        
+        // Now render the page with the session properly set
+        db.get("settings").then(settings => {
+          settings = settings || {};
+          res.render('auth/auth', { 
+            settings, 
+            req,
+            registrationEnabled: settings.register === true,
+            _csrf: req.csrfToken ? req.csrfToken() : ''
+          });
+        }).catch(err => {
+          console.error('Error fetching settings:', err);
+          res.status(500).send('Internal Server Error');
+        });
+      });
+    });
+  } catch (error) {
+    console.error('Error in /auth route:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Clear auth flow on logout
+router.get('/auth/logout', (req, res) => {
+  if (req.session) {
+    req.session.authFlow = null;
+  }
+  req.logout(() => {
+    res.redirect('/auth');
+  });
+});
+
+/**
  * Configures Passport's local strategy for user authentication. It checks the provided
  * username (or email) and password against stored credentials in the database. If the credentials
  * match, the user is authenticated; otherwise, appropriate error messages are returned.
@@ -312,9 +440,11 @@ router.get("/verify/:token", async (req, res) => {
 });
 
 router.get("/resend-verification", async (req, res) => {
+  const settings = (await db.get("settings")) || {};
   try {
     res.render("auth/resend-verification", {
       req,
+      settings,
     });
   } catch (error) {
     log.error("Error fetching name or logo:", error);
@@ -359,19 +489,18 @@ router.get("/", (req, res) => {
   if (req.user) {
     res.redirect("/instances");
   } else {
-    res.redirect("/login");
+    res.redirect("/auth");
   }
 });
 
-router.get("/login", async (req, res) => {
-  if (!req.user) {
-    res.render("auth/login", {
-      req,
-      user: req.user,
-    });
-  } else {
-    res.redirect("/instances");
-  }
+router.get("/login", enforceAuthFlow, async (req, res) => {
+  const settings = (await db.get("settings")) || {};
+  res.render("auth/login", {
+    req,
+    settings,
+    user: null, // Explicitly set to null for security
+    layout: 'layouts/auth'
+  });
 });
 
 async function initializeRoutes() {
@@ -383,16 +512,16 @@ async function initializeRoutes() {
         db.set("settings", { register: false });
       } else {
         if (settings.register === true) {
-          router.get("/register", async (req, res) => {
+          router.get("/register", enforceAuthFlow, async (req, res) => {
+            if (req.user) return res.redirect("/");
+            const settings = (await db.get("settings")) || {};
             try {
-              if (!req.user) {
-                res.render("auth/register", {
-                  req,
-                  user: req.user,
-                });
-              } else {
-                res.redirect("/instances");
-              }
+              res.render("auth/register", {
+                settings,
+                req,
+                user: null, // Explicitly set to null for security
+                layout: 'layouts/auth'
+              });
             } catch (error) {
               log.error("Error fetching name or logo:", error);
               res.status(500).send("Internal server error");
@@ -448,10 +577,22 @@ async function initializeRoutes() {
 
 initializeRoutes();
 
+router.get("/auth", async (req, res) => {
+  const settings = (await db.get("settings")) || {};
+  res.render("auth", {
+    settings,
+    req,
+    title: "Authentication",
+    layout: "layouts/auth"
+  });
+});
+
 router.get("/auth/reset-password", async (req, res) => {
+  const settings = (await db.get("settings")) || {};
   try {
     res.render("auth/reset-password", {
       req,
+      settings,
     });
   } catch (error) {
     log.error("Error rendering reset password page:", error);
