@@ -158,20 +158,22 @@ app.get("/setLanguage", async (req, res) => {
 
 app.use(async (req, res, next) => {
   try {
-    const settings = await db.get("settings");
+    const settings = (await db.get("settings")) || {};
 
     res.locals.languages = getLanguages();
     res.locals.ogTitle = config.ogTitle;
     res.locals.ogDescription = config.ogDescription;
-    res.locals.footer = settings.footer;
+    res.locals.footer = settings.footer || "";
     res.locals.theme = theme;
-    res.locals.name = settings.name;
-    res.locals.logo = settings.logo;
+    res.locals.name = settings.name || "Impulse";
+    res.locals.logo = settings.logo !== undefined ? settings.logo : true; // Default to true if not set
     res.locals.plugins = plugins;
     next();
   } catch (error) {
-    log.error("Error fetching settings:", error);
-    next(error);
+    // If there's an error, use default values
+    res.locals.name = "Impulse";
+    res.locals.logo = true;
+    next();
   }
 });
 
