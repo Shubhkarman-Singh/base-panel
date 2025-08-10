@@ -75,6 +75,95 @@
                </form>
             </div>
          </div>
+         <div id="unitprefixform" class="mt-6">
+            <form action="/admin/settings/change/unit-prefix" method="POST">
+               <label for="unitPrefix" class="block text-neutral-400 text-sm tracking-tight mb-2">Unit Prefix</label>
+               <div class="custom-dropdown relative">
+                  <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
+                     <span id="unitPrefixText"><%= settings.unitPrefix === 'binary' ? 'Binary Prefix (MiB/GiB)' : 'Decimal Prefix (MB/GB)' %></span>
+                     <svg class="w-4 h-4 transition-transform dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                     </svg>
+                  </button>
+                  <div class="dropdown-menu absolute z-50 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden">
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-t-xl" data-value="decimal">Decimal Prefix (MB/GB)</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-b-xl" data-value="binary">Binary Prefix (MiB/GiB)</div>
+                  </div>
+                  <input type="hidden" id="unitPrefix" name="unitPrefix" value="<%= settings.unitPrefix || 'decimal' %>">
+               </div>
+               <button id="Save-Unit-Prefix" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+            </form>
+         </div>
+         <div id="twofaform" class="mt-6">
+            <form action="/admin/settings/change/2fa-requirement" method="POST">
+               <label for="twoFARequirement" class="block text-neutral-400 text-sm tracking-tight mb-2">2FA Requirement</label>
+               <div class="custom-dropdown relative">
+                  <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
+                     <span id="twoFAText">
+                        <% if (settings.twoFARequirement === 'admins') { %>Required for Admins Only<% } else if (settings.twoFARequirement === 'all') { %>Required for All Users<% } else { %>Not Required<% } %>
+                     </span>
+                     <svg class="w-4 h-4 transition-transform dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                     </svg>
+                  </button>
+                  <div class="dropdown-menu absolute z-50 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden">
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-t-xl" data-value="none">Not Required</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer" data-value="admins">Required for Admins Only</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-b-xl" data-value="all">Required for All Users</div>
+                  </div>
+                  <input type="hidden" id="twoFARequirement" name="twoFARequirement" value="<%= settings.twoFARequirement || 'none' %>">
+               </div>
+               <button id="Save-2FA-Requirement" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+            </form>
+         </div>
+      </div>
+   </div>
+   
+   <div class="flex flex-col bg-white/5 m-8 pt-0 py-5 rounded-xl">
+      <h1 class="text-white text-[18px] px-5 py-4 mb-1 w-full bg-white/5 rounded-t-xl font-medium">Avatar Settings</h1>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-5">
+         <div id="avatarproviderform" class="mt-4">
+            <form action="/admin/settings/change/avatar-provider" method="POST">
+               <label for="avatarProvider" class="block text-neutral-400 text-sm tracking-tight mb-2">Avatar Provider</label>
+               <div class="custom-dropdown relative">
+                  <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
+                     <span id="avatarProviderText">
+                        <% if (settings.avatarProvider === 'dicebear') { %>DiceBear<% } else if (settings.avatarProvider === 'custom') { %>Custom<% } else { %>Gravatar<% } %>
+                     </span>
+                     <svg class="w-4 h-4 transition-transform dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                     </svg>
+                  </button>
+                  <div class="dropdown-menu absolute z-50 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden">
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-t-xl" data-value="gravatar">Gravatar</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer" data-value="dicebear">DiceBear</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-b-xl" data-value="custom">Custom</div>
+                  </div>
+                  <input type="hidden" id="avatarProvider" name="avatarProvider" value="<%= settings.avatarProvider || 'gravatar' %>">
+               </div>
+               <button id="Save-Avatar-Provider" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+            </form>
+         </div>
+         <div id="customavatarsform" class="mt-6 ml-8">
+            <form action="/admin/settings/toggle/custom-avatars" method="POST">
+               <div class="flex items-center mb-2">
+                  <% if (settings.customAvatars === true) { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">Allow Custom Avatars <span class="font-medium text-green-500"><%= req.translations.enabled %></span></span>
+                  <% } else { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">Allow Custom Avatars <span class="font-medium text-red-500"><%= req.translations.disabled %></span></span>
+                  <% } %>
+               </div>
+               <div class="flex flex-col sm:flex-row">
+                  <% if (settings.customAvatars === true) { %>  
+                  <button id="togglecustomavatars" type="submit" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none"><%= req.translations.disable %></button>
+                  <button id="togglecustomavatars" type="submit" class="block rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-green-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg opacity-[0.7]" disabled><%= req.translations.enable %></button>
+                  <% } else { %>
+                  <button id="togglecustomavatars" type="submit" class="block rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-red-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none opacity-[0.7]" disabled><%= req.translations.disable %></button>
+                  <button id="togglecustomavatars" type="submit" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg"><%= req.translations.enable %></button>
+                  <% } %>  
+               </div>
+            </form>
+         </div>
       </div>
    </div>
 </main>
@@ -82,6 +171,72 @@
 <%- include('../../components/footer') %>
 
 <script>
+   // Custom Dropdown Functionality
+   document.addEventListener('DOMContentLoaded', function() {
+      // Handle custom dropdowns
+      document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+         const toggle = dropdown.querySelector('.dropdown-toggle');
+         const menu = dropdown.querySelector('.dropdown-menu');
+         const arrow = dropdown.querySelector('.dropdown-arrow');
+         const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+         const textSpan = toggle.querySelector('span');
+         
+         toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Close other dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(otherMenu => {
+               if (otherMenu !== menu) {
+                  otherMenu.classList.add('hidden');
+                  otherMenu.parentElement.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+               }
+            });
+            
+            // Toggle current dropdown
+            menu.classList.toggle('hidden');
+            arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+         });
+         
+         // Handle dropdown item selection
+         dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', function() {
+               const value = this.getAttribute('data-value');
+               const text = this.textContent;
+               
+               hiddenInput.value = value;
+               textSpan.textContent = text;
+               menu.classList.add('hidden');
+               arrow.style.transform = 'rotate(0deg)';
+               
+               // Auto-submit the form when dropdown value changes
+               const form = dropdown.closest('form');
+               if (form) {
+                  // Show loading state
+                  const button = form.querySelector('button[type="submit"]');
+                  if (button) {
+                     const originalText = button.textContent;
+                     button.textContent = 'Saving...';
+                     button.disabled = true;
+                     
+                     // Submit form
+                     form.submit();
+                  }
+               }
+            });
+         });
+      });
+      
+      // Close dropdowns when clicking outside
+      document.addEventListener('click', function() {
+         document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.add('hidden');
+            menu.parentElement.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+         });
+      });
+   });
+
+   // Logo upload functionality
    document.getElementById('useImage').addEventListener('change', function() {
      const imageUploadBox = document.getElementById('imageUploadBox');
      const logoButton = document.getElementById('logoButton');

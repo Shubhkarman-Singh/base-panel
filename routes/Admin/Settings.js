@@ -230,4 +230,83 @@ router.post("/admin/settings/toggle/register", isAdmin, async (req, res) => {
   }
 });
 
+// Favicon upload route
+router.post("/admin/settings/change/favicon", isAdmin, upload.single("favicon"), async (req, res) => {
+  try {
+    if (req.file) {
+      const faviconPath = path.join(__dirname, "..", "..", "public", "assets", "favicon.ico");
+      fs.renameSync(req.file.path, faviconPath);
+      
+      const settings = (await db.get("settings")) || {};
+      settings.favicon = true;
+      await db.set("settings", settings);
+      
+      logAudit(req.user.userId, req.user.username, "favicon:edit", req.ip);
+    }
+    res.redirect("/admin/settings");
+  } catch (err) {
+    log.error("Error updating favicon:", err);
+    res.status(500).send("Error updating favicon");
+  }
+});
+
+// Avatar provider route
+router.post("/admin/settings/change/avatar-provider", isAdmin, async (req, res) => {
+  try {
+    const { avatarProvider } = req.body;
+    const settings = (await db.get("settings")) || {};
+    settings.avatarProvider = avatarProvider;
+    await db.set("settings", settings);
+    logAudit(req.user.userId, req.user.username, "avatar-provider:edit", req.ip);
+    res.redirect("/admin/settings");
+  } catch (err) {
+    log.error("Error changing avatar provider:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Custom avatars toggle
+router.post("/admin/settings/toggle/custom-avatars", isAdmin, async (req, res) => {
+  try {
+    const settings = (await db.get("settings")) || {};
+    settings.customAvatars = !settings.customAvatars;
+    await db.set("settings", settings);
+    logAudit(req.user.userId, req.user.username, "custom-avatars:edit", req.ip);
+    res.redirect("/admin/settings");
+  } catch (err) {
+    log.error("Error toggling custom avatars:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Unit prefix route
+router.post("/admin/settings/change/unit-prefix", isAdmin, async (req, res) => {
+  try {
+    const { unitPrefix } = req.body;
+    const settings = (await db.get("settings")) || {};
+    settings.unitPrefix = unitPrefix;
+    await db.set("settings", settings);
+    logAudit(req.user.userId, req.user.username, "unit-prefix:edit", req.ip);
+    res.redirect("/admin/settings");
+  } catch (err) {
+    log.error("Error changing unit prefix:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// 2FA requirement route
+router.post("/admin/settings/change/2fa-requirement", isAdmin, async (req, res) => {
+  try {
+    const { twoFARequirement } = req.body;
+    const settings = (await db.get("settings")) || {};
+    settings.twoFARequirement = twoFARequirement;
+    await db.set("settings", settings);
+    logAudit(req.user.userId, req.user.username, "2fa-requirement:edit", req.ip);
+    res.redirect("/admin/settings");
+  } catch (err) {
+    log.error("Error changing 2FA requirement:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 module.exports = router;

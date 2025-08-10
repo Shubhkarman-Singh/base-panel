@@ -1,0 +1,303 @@
+<%- include('../../components/template') %>
+
+<main id="content">
+  <div class="bg-transparent">
+    <div class="sm:flex sm:items-center px-8 pt-4">
+      <div class="sm:flex-auto">
+        <h1 class="text-base font-medium leading-6 text-white">Misc</h1>
+        <p class="mt-1 tracking-tight text-sm text-neutral-500">Miscellaneous admin tools and information</p>
+      </div>
+    </div>
+  </div>
+  <%- include('../../components/misc') %>
+  <div class="px-8 mt-5">
+    <!-- Filter Controls -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <!-- Action Filter Custom Dropdown -->
+      <div class="flex flex-col">
+        <label class="text-sm font-medium text-neutral-300 mb-2">Filter by Action</label>
+        <div class="relative">
+          <button id="actionDropdownBtn" class="w-full bg-neutral-700/10 border border-white/5 text-white rounded-xl px-3 py-2 text-left flex items-center justify-between hover:bg-neutral-700/20 transition-colors">
+            <span id="actionDropdownText">All Actions</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 transition-transform" id="actionDropdownIcon">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div id="actionDropdownMenu" class="absolute z-10 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden max-h-48 overflow-y-auto">
+            <div class="py-1">
+              <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="">All Actions</button>
+              <% const actions = [...new Set(audits.map(audit => audit.action))]; %>
+              <% actions.forEach(action => { %>
+                <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="<%= action %>"><%= action %></button>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date Range Filter Custom Dropdown -->
+      <div class="flex flex-col">
+        <label class="text-sm font-medium text-neutral-300 mb-2">Date Range</label>
+        <div class="relative">
+          <button id="dateDropdownBtn" class="w-full bg-neutral-700/10 border border-white/5 text-white rounded-xl px-3 py-2 text-left flex items-center justify-between hover:bg-neutral-700/20 transition-colors">
+            <span id="dateDropdownText">All Time</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 transition-transform" id="dateDropdownIcon">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          <div id="dateDropdownMenu" class="absolute z-10 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden">
+            <div class="py-1">
+              <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="2">Last 2 Days</button>
+              <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="7">Last Week</button>
+              <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="30">Last Month</button>
+              <button class="w-full px-3 py-2 text-left text-white hover:bg-white/10 transition-colors" data-value="">All Time</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sort Order -->
+      <div class="flex flex-col">
+        <label class="text-sm font-medium text-neutral-300 mb-2">Sort Order</label>
+        <div class="flex gap-2">
+          <button id="sortDesc" class="flex-1 bg-white/10 hover:bg-white/20 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 border border-white/5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 inline mr-1">
+              <path fill-rule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clip-rule="evenodd" />
+            </svg>
+            Newest First
+          </button>
+          <button id="sortAsc" class="flex-1 bg-neutral-700/10 hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 border border-white/5">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 inline mr-1">
+              <path fill-rule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 01-1.08 1.04L10.75 5.612v10.638A.75.75 0 0110 17z" clip-rule="evenodd" />
+            </svg>
+            Oldest First
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <% if (audits && audits.length > 0) { %>
+      <div class="overflow-hidden rounded-xl bg-neutral-700/10 shadow">
+        <div class="overflow-x-auto">
+          <table id="auditTable" class="min-w-full divide-y divide-white/5">
+            <thead class="bg-neutral-700/20">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                      <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                    </svg>
+                    <%= req.translations.user || 'User' %>
+                  </div>
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                      <path fill-rule="evenodd" d="M8.34 1.804A1 1 0 019.32 1h1.36a1 1 0 01.98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 011.262.125l.962.962a1 1 0 01.125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.294a1 1 0 01.804.98v1.361a1 1 0 01-.804.98l-1.473.295a6.95 6.95 0 01-.587 1.416l.834 1.25a1 1 0 01-.125 1.262l-.962.962a1 1 0 01-1.262.125l-1.25-.834a6.953 6.953 0 01-1.416.587l-.294 1.473a1 1 0 01-.98.804H9.32a1 1 0 01-.98-.804l-.295-1.473a6.957 6.957 0 01-1.416-.587l-1.25.834a1 1 0 01-1.262-.125l-.962-.962a1 1 0 01-.125-1.262l.834-1.25a6.957 6.957 0 01-.587-1.416l-1.473-.294A1 1 0 011 10.68V9.32a1 1 0 01.804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 01.125-1.262l.962-.962A1 1 0 015.38 3.03l1.25.834a6.957 6.957 0 011.416-.587L8.34 1.804zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <%= req.translations.action || 'Action' %>
+                  </div>
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                      <path fill-rule="evenodd" d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm2.25 8.5a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" clip-rule="evenodd" />
+                    </svg>
+                    <%= req.translations.addressIP || 'IP Address' %>
+                  </div>
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">
+                  <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
+                    </svg>
+                    <%= req.translations.timestamp || 'Timestamp' %>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="auditBody" class="bg-transparent divide-y divide-white/5">
+              <% audits.forEach(function(audit) { %>
+                <tr data-timestamp="<%= new Date(audit.timestamp).getTime() %>" class="hover:bg-white/5 transition-colors duration-150">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-8 w-8">
+                        <div class="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-white">
+                            <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <div class="ml-3">
+                        <div class="text-sm font-medium text-white">
+                          <% if (audit.userId === req.user.userId) { %>
+                            <%= req.translations.you || 'You' %>
+                          <% } else { %>
+                            <%= audit.username %>
+                          <% } %>
+                        </div>
+                        <div class="text-xs text-neutral-400"><%= audit.userId.substring(0, 8) %>...</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-white/10 text-white border border-white/20">
+                      <%= audit.action %>
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-300 font-mono"><%= audit.ip %></td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
+                    <div class="flex flex-col">
+                      <span><%= new Date(audit.timestamp).toLocaleDateString() %></span>
+                      <span class="text-xs text-neutral-400"><%= new Date(audit.timestamp).toLocaleTimeString() %></span>
+                    </div>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="text-center py-12 bg-neutral-700/10 rounded-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-12 h-12 text-neutral-400 mx-auto mb-4">
+          <path fill-rule="evenodd" d="M2.25 13.5a8.25 8.25 0 018.25-8.25.75.75 0 01.75.75v6.75H18a.75.75 0 01.75.75 8.25 8.25 0 01-16.5 0z" clip-rule="evenodd" />
+          <path fill-rule="evenodd" d="M12.75 3a.75.75 0 01.75-.75 8.25 8.25 0 018.25 8.25.75.75 0 01-.75.75h-7.5V3z" clip-rule="evenodd" />
+        </svg>
+        <h3 class="text-lg font-medium text-white mb-2">No Audit Logs</h3>
+        <p class="text-sm text-neutral-400"><%= req.translations.auditLogsNotAvailable || 'No audit logs are currently available.' %></p>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('../../components/footer') %>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tableBody = document.getElementById('auditBody');
+    const originalRows = Array.from(tableBody.querySelectorAll('tr'));
+    
+    // Filter state
+    let selectedAction = '';
+    let selectedRange = '';
+    
+    // Custom dropdown elements
+    const actionDropdownBtn = document.getElementById('actionDropdownBtn');
+    const actionDropdownMenu = document.getElementById('actionDropdownMenu');
+    const actionDropdownText = document.getElementById('actionDropdownText');
+    const actionDropdownIcon = document.getElementById('actionDropdownIcon');
+    
+    const dateDropdownBtn = document.getElementById('dateDropdownBtn');
+    const dateDropdownMenu = document.getElementById('dateDropdownMenu');
+    const dateDropdownText = document.getElementById('dateDropdownText');
+    const dateDropdownIcon = document.getElementById('dateDropdownIcon');
+    
+    const sortAsc = document.getElementById('sortAsc');
+    const sortDesc = document.getElementById('sortDesc');
+
+    // Custom dropdown functionality
+    function setupDropdown(btn, menu, textEl, iconEl, onSelect) {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        
+        // Close all dropdowns
+        document.querySelectorAll('[id$="DropdownMenu"]').forEach(m => m.classList.add('hidden'));
+        document.querySelectorAll('[id$="DropdownIcon"]').forEach(i => i.classList.remove('rotate-180'));
+        
+        if (!isOpen) {
+          menu.classList.remove('hidden');
+          iconEl.classList.add('rotate-180');
+        }
+      });
+      
+      menu.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+          const value = e.target.getAttribute('data-value');
+          const text = e.target.textContent;
+          textEl.textContent = text;
+          menu.classList.add('hidden');
+          iconEl.classList.remove('rotate-180');
+          onSelect(value);
+        }
+      });
+    }
+    
+    // Setup dropdowns
+    setupDropdown(actionDropdownBtn, actionDropdownMenu, actionDropdownText, actionDropdownIcon, (value) => {
+      selectedAction = value;
+      applyFilters();
+    });
+    
+    setupDropdown(dateDropdownBtn, dateDropdownMenu, dateDropdownText, dateDropdownIcon, (value) => {
+      selectedRange = value;
+      applyFilters();
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', () => {
+      document.querySelectorAll('[id$="DropdownMenu"]').forEach(m => m.classList.add('hidden'));
+      document.querySelectorAll('[id$="DropdownIcon"]').forEach(i => i.classList.remove('rotate-180'));
+    });
+
+    function applyFilters() {
+      const selectedRangeNum = parseInt(selectedRange) || Infinity;
+      const now = new Date().getTime();
+
+      tableBody.innerHTML = '';
+      const filteredRows = originalRows.filter(row => {
+        // Get action from the span badge in the second column
+        const actionSpan = row.children[1].querySelector('span');
+        const action = actionSpan ? actionSpan.textContent.trim() : '';
+        
+        const timestamp = parseInt(row.getAttribute('data-timestamp'));
+        const dateDiff = (now - timestamp) / (1000 * 60 * 60 * 24);
+
+        return (selectedAction === '' || action === selectedAction) &&
+               dateDiff <= selectedRangeNum;
+      });
+
+      filteredRows.forEach(row => tableBody.appendChild(row));
+      
+      // Update results count
+      console.log(`Filtered ${filteredRows.length} of ${originalRows.length} rows`);
+    }
+
+    function sortTable(ascending) {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+      rows.sort((a, b) => {
+        const timestampA = parseInt(a.getAttribute('data-timestamp'));
+        const timestampB = parseInt(b.getAttribute('data-timestamp'));
+
+        return ascending ? timestampA - timestampB : timestampB - timestampA;
+      });
+
+      tableBody.innerHTML = '';
+      rows.forEach(row => tableBody.appendChild(row));
+      
+      // Update button states
+      if (ascending) {
+        sortAsc.classList.remove('bg-neutral-700/10');
+        sortAsc.classList.add('bg-white/10');
+        sortDesc.classList.remove('bg-white/10');
+        sortDesc.classList.add('bg-neutral-700/10');
+      } else {
+        sortDesc.classList.remove('bg-neutral-700/10');
+        sortDesc.classList.add('bg-white/10');
+        sortAsc.classList.remove('bg-white/10');
+        sortAsc.classList.add('bg-neutral-700/10');
+      }
+    }
+
+    // Sort button event listeners
+    sortAsc.addEventListener('click', () => sortTable(true));
+    sortDesc.addEventListener('click', () => sortTable(false));
+
+    // Initialize with newest first (descending)
+    sortTable(false);
+    applyFilters();
+  });
+</script>
