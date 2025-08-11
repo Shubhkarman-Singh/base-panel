@@ -32,6 +32,7 @@ const { db } = require("./handlers/db.js");
 const translationMiddleware = require("./handlers/translation");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
+const { createLoginLimiter, createPasswordResetLimiter } = require("./utils/advancedRateLimit.js");
 const theme = require("./storage/theme.json");
 const analytics = require("./utils/analytics.js");
 const crypto = require("node:crypto");
@@ -82,19 +83,86 @@ app.use(translationMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-const postRateLimiter = rateLimit({
-  windowMs: 60 * 100,
-  max: 6,
-  message: "Too many requests, please try again later",
+// Comprehensive rate limiting configuration
+const generalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: "Too many requests from this IP, please try again later.",
+    retryAfter: "15 minutes"
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-app.use((req, res, next) => {
-  if (req.method === "POST") {
-    postRateLimiter(req, res, next);
-  } else {
-    next();
-  }
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 auth attempts per windowMs
+  message: {
+    error: "Too many authentication attempts, please try again later.",
+    retryAfter: "15 minutes"
+  },
+  skipSuccessfulRequests: true, // Don't count successful requests
 });
+
+const apiRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Higher limit for API endpoints
+  message: {
+    error: "API rate limit exceeded, please try again later.",
+    retryAfter: "15 minutes"
+  },
+});
+
+const strictRateLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // Very strict for sensitive operations
+  message: {
+    error: "Rate limit exceeded for sensitive operation, please try again later.",
+    retryAfter: "1 minute"
+  },
+});
+
+// Apply general rate limiting to all requests
+app.use(generalRateLimiter);
+
+// Password reset rate limiter - very strict
+const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // Only 3 password reset attempts per hour per IP
+  message: {
+    error: "Too many password reset attempts, please try again later.",
+    retryAfter: "1 hour"
+  },
+  skipSuccessfulRequests: false, // Count all attempts
+});
+
+// Apply specific rate limiting to auth routes
+app.use('/auth', authRateLimiter);
+app.use('/login', authRateLimiter);
+app.use('/register', authRateLimiter);
+app.use('/2fa', authRateLimiter);
+
+// Apply advanced login rate limiting with exponential backoff
+app.use('/auth/login', createLoginLimiter());
+app.use('/login', createLoginLimiter());
+
+// Apply password reset rate limiting
+app.use('/auth/reset-password', createPasswordResetLimiter());
+app.use('/change-password', passwordResetLimiter);
+
+// Apply API rate limiting
+app.use('/api', apiRateLimiter);
+
+// Apply strict rate limiting to sensitive admin operations
+app.use('/admin/users/create', strictRateLimiter);
+app.use('/admin/users/delete', strictRateLimiter);
+app.use('/admin/settings', strictRateLimiter);
+
+// Apply strict rate limiting to account operations
+app.use('/update-username', strictRateLimiter);
+app.use('/verify-2fa', strictRateLimiter);
+app.use('/disable-2fa', strictRateLimiter);
 
 /**
  * Generates a cryptographically secure random string.

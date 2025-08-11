@@ -45,11 +45,32 @@ Codebase: Impulse Panel v0.0.1
    - Added maxAge: 24 hours for automatic session expiration
    - Session security is now properly configured
 
-3. WEAK RATE LIMITING (MEDIUM)
+3. WEAK RATE LIMITING (MEDIUM) ✅ FIXED
    Location: index.js lines 79-92
    Issue: Only 6 requests per 6 seconds (60*100ms) for POST requests only
    Risk: Brute force attacks, DoS
    Fix: Implement proper rate limiting per IP/user with exponential backoff
+   
+   FIXED CHANGES:
+   - Implemented comprehensive multi-tier rate limiting system:
+     * General rate limiter: 100 requests per 15 minutes per IP
+     * Auth rate limiter: 5 auth attempts per 15 minutes per IP
+     * API rate limiter: 1000 requests per 15 minutes for API endpoints
+     * Strict rate limiter: 10 requests per minute for sensitive operations
+     * Password reset limiter: 3 attempts per hour per IP+email combination
+   - Created advanced rate limiting with exponential backoff (utils/advancedRateLimit.js):
+     * Login attempts with exponential backoff: 1min → 5min → 15min → 1hr → 6hr → 24hr
+     * Persistent storage of rate limit data in database
+     * Automatic cleanup of old entries
+     * IP-based tracking with smart reset on successful login
+   - Applied specific rate limiting to sensitive routes:
+     * /auth, /login, /register, /2fa (auth limiter)
+     * /auth/reset-password (password reset limiter with advanced tracking)
+     * /admin/* routes (strict limiter)
+     * /api/* routes (API limiter)
+     * Account operations like username changes, 2FA operations (strict limiter)
+   - Added proper error messages with retry-after information
+   - Implemented rate limit headers for client awareness
 
 4. PASSWORD IN EMAIL (CRITICAL)
    Location: handlers/email.js lines 29-47
