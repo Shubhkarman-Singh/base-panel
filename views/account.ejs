@@ -45,6 +45,66 @@
                   <button class="mt-4 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.disable2FA %></button>
                  </form>
                  <% } %>
+                 
+                 <!-- Avatar Section -->
+                 <div class="mt-6 pt-6 border-t border-white/10">
+                    <h3 class="text-white text-sm font-medium mb-4">Avatar Settings</h3>
+                    <div class="flex items-center space-x-4 mb-4">
+                       <img class="h-16 w-16 rounded-xl" src="<%= getUserAvatarUrl(user, settings) %>" alt="Current avatar" onerror="this.src='/assets/default-logo.svg'">
+                       <div class="flex-1">
+                          <p class="text-neutral-400 text-sm">Current avatar</p>
+                          <p class="text-neutral-500 text-xs">Provider: <%= settings.avatarProvider || 'default' %></p>
+                       </div>
+                    </div>
+                    
+                    <% if (settings.customAvatars) { %>
+                    <form action="/change-avatar" method="POST" class="space-y-4">
+                       <div>
+                          <label for="avatarUrl" class="text-neutral-400 text-sm tracking-tight mb-2 block">Custom Avatar URL</label>
+                          <input type="url" name="avatarUrl" id="avatarUrl" 
+                                 class="rounded-xl focus:ring-transparent focus:border-transparent text-sm w-full items-center transition hover:bg-white/5 px-4 py-2 border-white/5 bg-neutral-600/20 placeholder-neutral-400 text-white border" 
+                                 placeholder="https://example.com/avatar.png" 
+                                 value="<%= user.customAvatarUrl || '' %>">
+                       </div>
+                       <div class="flex space-x-3">
+                          <button type="submit" class="rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2">Update Avatar</button>
+                          <% if (user.customAvatarUrl) { %>
+                          <button type="submit" name="action" value="remove" class="rounded-xl bg-red-600 hover:bg-red-500 px-3 py-2 text-center text-sm font-medium text-white shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 ml-3">Remove Custom Avatar</button>
+                          <% } %>
+                       </div>
+                    </form>
+                    <% } %>
+                    
+                    <% if (settings.avatarProvider === 'boring-avatars') { %>
+                    <div class="mt-4 pt-4 border-t border-white/10">
+                       <h4 class="text-white text-sm font-medium mb-3">Boring Avatars Style</h4>
+                       <form action="/change-boring-avatar-style" method="POST" class="space-y-4">
+                          <div>
+                             <label class="text-neutral-400 text-sm tracking-tight mb-2 block">Style</label>
+                             <select name="style" class="rounded-xl bg-neutral-600/20 border border-white/5 text-white text-sm px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="beam" <%= (user.boringAvatarStyle || 'beam') === 'beam' ? 'selected' : '' %>>Beam</option>
+                                <option value="marble" <%= (user.boringAvatarStyle || 'beam') === 'marble' ? 'selected' : '' %>>Marble</option>
+                                <option value="pixel" <%= (user.boringAvatarStyle || 'beam') === 'pixel' ? 'selected' : '' %>>Pixel</option>
+                                <option value="sunset" <%= (user.boringAvatarStyle || 'beam') === 'sunset' ? 'selected' : '' %>>Sunset</option>
+                                <option value="bauhaus" <%= (user.boringAvatarStyle || 'beam') === 'bauhaus' ? 'selected' : '' %>>Bauhaus</option>
+                                <option value="ring" <%= (user.boringAvatarStyle || 'beam') === 'ring' ? 'selected' : '' %>>Ring</option>
+                             </select>
+                          </div>
+                          <div>
+                             <label class="text-neutral-400 text-sm tracking-tight mb-2 block">Colors (comma-separated hex codes)</label>
+                             <input type="text" name="colors" 
+                                    class="rounded-xl focus:ring-transparent focus:border-transparent text-sm w-full items-center transition hover:bg-white/5 px-4 py-2 border-white/5 bg-neutral-600/20 placeholder-neutral-400 text-white border" 
+                                    placeholder="264653,2a9d8f,e9c46a,f4a261,e76f51" 
+                                    value="<%= (user.boringAvatarColors || ['264653', '2a9d8f', 'e9c46a', 'f4a261', 'e76f51']).join(',') %>">
+                          </div>
+                          <div class="flex space-x-3">
+                             <button type="submit" class="rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2">Update Style</button>
+                             <button type="button" id="randomColors" class="rounded-xl bg-purple-600 hover:bg-purple-500 px-3 py-2 text-center text-sm font-medium text-white shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 ml-3">Random Colors</button>
+                          </div>
+                       </form>
+                    </div>
+                    <% } %>
+                 </div>
                </div>
             </div>
          </div>
@@ -320,6 +380,26 @@
    
       // Add event listener to the form for submit event
       document.getElementById('change-username-form').addEventListener('submit', handleUsernameUpdate);
+   });
+
+   // Random colors for boring avatars
+   document.addEventListener('DOMContentLoaded', function() {
+      const randomColorsBtn = document.getElementById('randomColors');
+      if (randomColorsBtn) {
+         randomColorsBtn.addEventListener('click', function() {
+            const colorPalettes = [
+               ['264653', '2a9d8f', 'e9c46a', 'f4a261', 'e76f51'],
+               ['f72585', 'b5179e', '7209b7', '480ca8', '3a0ca3'],
+               ['03045e', '023e8a', '0077b6', '0096c7', '00b4d8'],
+               ['606c38', '283618', 'fefae0', 'dda15e', 'bc6c25'],
+               ['d62828', 'f77f00', 'fcbf49', 'eae2b7', '003049'],
+               ['ff006e', 'fb5607', 'ffbe0b', '8338ec', '3a86ff'],
+               ['f94144', 'f3722c', 'f8961e', 'f9844a', '90e0ef']
+            ];
+            const randomPalette = colorPalettes[Math.floor(Math.random() * colorPalettes.length)];
+            document.querySelector('input[name="colors"]').value = randomPalette.join(',');
+         });
+      }
    });
 </script>
 

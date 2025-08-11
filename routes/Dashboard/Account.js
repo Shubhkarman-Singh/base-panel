@@ -26,10 +26,15 @@ async function doesUserExist(username) {
 }
 
 router.get("/account", async (req, res) => {
+  const { getUserAvatarUrl } = require("../../handlers/avatarHelper.js");
+  const settings = (await db.get("settings")) || {};
+  
   res.render("account", {
     req,
     user: req.user,
     users: (await db.get("users")) || [],
+    settings,
+    getUserAvatarUrl
   });
 });
 
@@ -282,6 +287,75 @@ router.post("/validate-password", isAuthenticated, async (req, res) => {
   } catch (error) {
     log.error("Error validating password:", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+// Change avatar URL route
+router.post("/change-avatar", isAuthenticated, async (req, res) => {
+  try {
+    const { avatarUrl, action } = req.body;
+    const users = await db.get("users");
+    
+    const userIndex = users.findIndex(u => u.userId === req.user.userId);
+    if (userIndex === -1) {
+      return res.status(404).send("User not found");
+    }
+    
+    if (action === 'remove') {
+      // Remove custom avatar URL
+      users[userIndex].customAvatarUrl = null;
+    } else if (avatarUrl) {
+      // Validate URL format
+      try {
+        new URL(avatarUrl);
+        users[userIndex].customAvatarUrl = avatarUrl;
+      } catch (error) {
+        return res.status(400).send("Invalid URL format");
+      }
+    }
+    
+    await db.set("users", users);
+    res.redirect("/account?msg=AvatarUpdated");
+  } catch (error) {
+    log.error("Error changing avatar:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Change boring avatar style route
+router.post("/change-boring-avatar-style", isAuthenticated, async (req, res) => {
+  try {
+    const { style, colors } = req.body;
+    const users = await db.get("users");
+    
+    const userIndex = users.findIndex(u => u.userId === req.user.userId);
+    if (userIndex === -1) {
+      return res.status(404).send("User not found");
+    }
+    
+    // Validate style
+    const validStyles = ['beam', 'marble', 'pixel', 'sunset', 'bauhaus', 'ring'];
+    if (!validStyles.includes(style)) {
+      return res.status(400).send("Invalid style");
+    }
+    
+    // Parse and validate colors
+    let colorArray = [];
+    if (colors) {
+      colorArray = colors.split(',').map(c => c.trim()).filter(c => /^[0-9a-fA-F]{6}$/.test(c));
+      if (colorArray.length === 0) {
+        colorArray = ['264653', '2a9d8f', 'e9c46a', 'f4a261', 'e76f51']; // Default colors
+      }
+    }
+    
+    users[userIndex].boringAvatarStyle = style;
+    users[userIndex].boringAvatarColors = colorArray;
+    
+    await db.set("users", users);
+    res.redirect("/account?msg=AvatarStyleUpdated");
+  } catch (error) {
+    log.error("Error changing boring avatar style:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 

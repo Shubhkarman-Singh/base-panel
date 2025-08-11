@@ -1,0 +1,192 @@
+<%- include('../../components/template') %>
+
+<main id="content">
+   <div class="bg-transparent">
+      <div class="sm:flex sm:items-center px-8 pt-4">
+         <div class="sm:flex-auto">
+            <h1 class="text-base font-medium leading-6 text-white"><%= req.translations.settings %></h1>
+            <p class="mt-1 tracking-tight text-sm text-neutral-500">Configure CAPTCHA protection for your forms</p>
+         </div>
+      </div>
+   </div>
+   <%- include('../../components/settings') %>
+
+   <!-- Success/Error Messages -->
+   <% if (req.query.msg === 'CaptchaUpdated') { %>
+   <div class="mx-8 mb-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+      <div class="flex items-center">
+         <svg class="w-5 h-5 text-green-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+         </svg>
+         <p class="text-green-300 text-sm font-medium">CAPTCHA settings updated successfully!</p>
+      </div>
+   </div>
+   <% } %>
+
+   <div class="flex flex-col bg-white/5 m-8 pt-0 py-5 rounded-xl">
+      <h1 class="text-white text-[18px] px-5 py-4 mb-1 w-full bg-white/5 rounded-t-xl font-medium">CAPTCHA Protection</h1>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-5">
+         
+         <!-- Enable/Disable Toggle -->
+         <div class="mt-4">
+            <form action="/admin/settings/toggle/captcha" method="POST">
+               <div class="flex items-center mb-2">
+                  <% if (captchaSettings.enabled === true) { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">CAPTCHA Protection <span class="font-medium text-green-500">Enabled</span></span>
+                  <% } else { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">CAPTCHA Protection <span class="font-medium text-red-500">Disabled</span></span>
+                  <% } %>
+               </div>
+               <div class="flex flex-col sm:flex-row">
+                  <% if (captchaSettings.enabled === true) { %>  
+                  <button type="submit" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none">Disable</button>
+                  <button type="submit" class="block rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-green-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg opacity-[0.7]" disabled>Enable</button>
+                  <% } else { %>
+                  <button type="submit" class="block rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-red-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none opacity-[0.7]" disabled>Disable</button>
+                  <button type="submit" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg">Enable</button>
+                  <% } %>  
+               </div>
+            </form>
+         </div>
+
+         <!-- Site Key Configuration -->
+         <% if (captchaSettings.enabled) { %>
+         <div class="mt-4">
+            <form action="/admin/settings/change/captcha" method="POST">
+               <label for="siteKey" class="text-neutral-400 text-sm tracking-tight mb-2">Site Key</label>
+               <div class="relative">
+                  <input type="password" id="siteKey" name="siteKey" 
+                         class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-white/5 placeholder:text-white/20 border border-black/10" 
+                         placeholder="6Lc..." 
+                         value="<%= captchaSettings.siteKey || '' %>" required>
+                  <button type="button" onclick="togglePassword('siteKey')" 
+                          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white text-xs">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                     </svg>
+                  </button>
+               </div>
+         </div>
+
+         <!-- Secret Key Configuration -->
+         <div class="mt-4">
+               <label for="secretKey" class="text-neutral-400 text-sm tracking-tight mb-2">Secret Key</label>
+               <div class="relative">
+                  <input type="password" id="secretKey" name="secretKey" 
+                         class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-white/5 placeholder:text-white/20 border border-black/10" 
+                         placeholder="6Lc..." 
+                         value="<%= captchaSettings.secretKey || '' %>" required>
+                  <button type="button" onclick="togglePassword('secretKey')" 
+                          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-white text-xs">
+                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                     </svg>
+                  </button>
+               </div>
+         </div>
+
+         <!-- Domain Verification -->
+         <div class="mt-4">
+               <div class="flex items-center mb-2">
+                  <% if (captchaSettings.verifyDomain === true) { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">Verify Domain <span class="font-medium text-green-500">Enabled</span></span>
+                  <% } else { %>
+                  <span class="text-neutral-400 text-sm tracking-tight mb-2">Verify Domain <span class="font-medium text-red-500">Disabled</span></span>
+                  <% } %>
+               </div>
+               <div class="flex flex-col sm:flex-row">
+                  <% if (captchaSettings.verifyDomain === true) { %>  
+                  <button type="button" onclick="toggleDomainVerify(false)" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none">Disable</button>
+                  <button type="button" class="block rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-green-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg opacity-[0.7]" disabled>Enable</button>
+                  <% } else { %>
+                  <button type="button" class="block rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white shadow-lg hover:bg-red-500 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-l-lg sm:rounded-r-none opacity-[0.7]" disabled>Disable</button>
+                  <button type="button" onclick="toggleDomainVerify(true)" class="block rounded-lg bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-lg hover:bg-neutral-200 transition focus:outline focus:outline-2 focus:outline-offset-2 sm:rounded-none sm:rounded-r-lg">Enable</button>
+                  <% } %>  
+               </div>
+               <input type="hidden" id="verifyDomain" name="verifyDomain" value="<%= captchaSettings.verifyDomain ? 'on' : 'off' %>">
+               <button type="submit" class="mt-6 block rounded-xl bg-white hover:bg-gray-100 text-gray-900 px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2">Save Configuration</button>
+            </form>
+         </div>
+         <% } %>
+
+         <!-- Provider Info -->
+         <div class="mt-4"></div>
+            <span class="text-neutral-400 text-sm tracking-tight mb-2 block">Supported Providers</span>
+            <div class="bg-white/5 rounded-xl p-4">
+               <div class="flex items-center space-x-3">
+                  <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  <div>
+                     <p class="text-white text-sm font-medium">Google reCAPTCHA v2</p>
+                     <p class="text-neutral-400 text-xs">Active & Working</p>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <!-- Protection Status -->
+         <div class="mt-4">
+            <span class="text-neutral-400 text-sm tracking-tight mb-2 block">Protection Status</span>
+            <div class="bg-white/5 rounded-xl p-4 space-y-2">
+               <div class="flex items-center justify-between">
+                  <span class="text-neutral-400 text-xs">Login Forms</span>
+                  <span class="text-xs px-2 py-1 rounded-full <%= captchaSettings.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+                     <%= captchaSettings.enabled ? 'Protected' : 'Unprotected' %>
+                  </span>
+               </div>
+               <div class="flex items-center justify-between">
+                  <span class="text-neutral-400 text-xs">Registration</span>
+                  <span class="text-xs px-2 py-1 rounded-full <%= captchaSettings.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+                     <%= captchaSettings.enabled ? 'Protected' : 'Unprotected' %>
+                  </span>
+               </div>
+               <div class="flex items-center justify-between">
+                  <span class="text-neutral-400 text-xs">Password Reset</span>
+                  <span class="text-xs px-2 py-1 rounded-full <%= captchaSettings.enabled ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+                     <%= captchaSettings.enabled ? 'Protected' : 'Unprotected' %>
+                  </span>
+               </div>
+            </div>
+         </div>
+
+         <!-- Get Keys Link -->
+         <div class="mt-4">
+            <span class="text-neutral-400 text-sm tracking-tight mb-2 block">Get reCAPTCHA Keys</span>
+            <a href="https://www.google.com/recaptcha/admin" target="_blank" class="block rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2">
+               Visit Google reCAPTCHA Console
+            </a>
+         </div>
+
+      </div>
+   </div>
+</main>
+
+<%- include('../../components/footer') %>
+
+<script>
+function togglePassword(fieldId) {
+   const field = document.getElementById(fieldId);
+   const button = field.parentElement.querySelector('button');
+   
+   if (field.type === 'password') {
+      field.type = 'text';
+      button.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+      </svg>`;
+   } else {
+      field.type = 'password';
+      button.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+      </svg>`;
+   }
+}
+
+function toggleDomainVerify(enable) {
+   document.getElementById('verifyDomain').value = enable ? 'on' : 'off';
+}
+</script>

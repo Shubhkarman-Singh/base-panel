@@ -3,10 +3,14 @@
    <head>
       <title><%= name %></title>
       <% if (logo == true) { %>
-         <link rel="icon" href="/assets/logo.png" type="image/x-icon">
-         <% }  else { %>
+         <% if (settings.logoType === 'link' && settings.logoLink) { %>
+            <link rel="icon" href="<%= settings.logoLink %>" type="image/x-icon">
+         <% } else { %>
             <link rel="icon" href="/assets/logo.png" type="image/x-icon">
          <% } %>
+      <% } else { %>
+         <link rel="icon" href="/assets/default-logo.svg" type="image/x-icon">
+      <% } %>
 
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,7 +105,11 @@
                <div class="pl-6 pt-4 pb-4 flex">
                   <a href="/" class="flex">
                      <% if (logo == true) { %>
-                     <img src="/assets/logo.png" class="h-7 w-7 rounded mr-3 inline-flex">
+                        <% if (settings.logoType === 'link' && settings.logoLink) { %>
+                           <img src="<%= settings.logoLink %>" class="h-7 w-7 rounded mr-3 inline-flex" onerror="this.src='/assets/default-logo.svg'">
+                        <% } else { %>
+                           <img src="/assets/logo.png" class="h-7 w-7 rounded mr-3 inline-flex" onerror="this.src='/assets/default-logo.svg'">
+                        <% } %>
                      <% } %>
                      <h1 class="text-white font-medium tracking-tight text-lg group-[.collapsed]:hidden"><%= name %></h1>
                   </a>
@@ -132,7 +140,7 @@
                </li>
                   <li class="mt-auto border-t border-white/5">
                      <div class="flex items-center space-x-4 py-4 px-6">
-                        <img class="h-8 w-8 rounded-xl" src="https://api.dicebear.com/9.x/thumbs/svg?seed=<%= user.username %>" alt="User avatar">
+                        <img class="h-8 w-8 rounded-xl" src="<%= getUserAvatarUrl(user, settings) %>" alt="User avatar">
                         <div class="group-[.collapsed]:hidden">
                            <p class="text-sm font-medium text-white"><%= user.username %></p>
                            <p class="text-xs text-neutral-500"><%= user.userId.substring(0, 6) %></p>

@@ -91,15 +91,17 @@ app.use((req, res, next) => {
 });
 
 /**
- * Generates a random 16-character hexadecimal string.
+ * Generates a cryptographically secure random string.
  *
- * @param {number} length - The length of the string to generate.
- * @returns {string} - The generated string.
+ * @param {number} length - The length of the string to generate (minimum 32 for session secrets).
+ * @returns {string} - The generated hexadecimal string.
  */
 function generateRandomString(length) {
-  return crypto
-    .getRandomValues(new Uint8Array(length))
-    .reduce((str, byte) => str + String.fromCharCode(byte), "");
+  // Ensure minimum length for security
+  const minLength = Math.max(length, 32);
+  
+  // Generate cryptographically secure random bytes
+  return crypto.randomBytes(minLength).toString('hex');
 }
 
 /**
@@ -113,7 +115,12 @@ function replaceRandomValues(obj) {
     if (typeof obj[key] === "object" && obj[key] !== null) {
       replaceRandomValues(obj[key]);
     } else if (obj[key] === "Random") {
-      obj[key] = generateRandomString(16);
+      // Generate longer, more secure strings for session secrets
+      if (key === "session_secret") {
+        obj[key] = generateRandomString(64); // 64-byte hex string for session secrets
+      } else {
+        obj[key] = generateRandomString(32); // 32-byte hex string for other secrets
+      }
     }
   }
 }
@@ -156,9 +163,16 @@ app.get("/setLanguage", async (req, res) => {
   }
 });
 
+const { getUserAvatarUrl } = require("./handlers/avatarHelper");
+const { formatBytes, formatDiskUsage, formatMemory, formatSpeed } = require("./utils/unitHelper");
+const { enforce2FA } = require("./utils/twoFAEnforcement");
+const { getLogoProperties } = require("./handlers/logoHelper");
+const { addCaptchaToLocals } = require("./utils/captchaMiddleware");
+
 app.use(async (req, res, next) => {
   try {
     const settings = (await db.get("settings")) || {};
+    const captchaSettings = (await db.get("captcha_settings")) || {};
 
     res.locals.languages = getLanguages();
     res.locals.ogTitle = config.ogTitle;
@@ -168,11 +182,28 @@ app.use(async (req, res, next) => {
     res.locals.name = settings.name || "Impulse";
     res.locals.logo = settings.logo !== undefined ? settings.logo : true; // Default to true if not set
     res.locals.plugins = plugins;
+    res.locals.settings = settings; // Make settings available to all views
+    res.locals.captchaSettings = captchaSettings; // Make captcha settings available to all views
+    
+    // Add avatar helper function to views
+    res.locals.getUserAvatarUrl = (user) => getUserAvatarUrl(user, settings);
+    
+    // Add unit formatting helpers to views
+    res.locals.formatBytes = (bytes, decimals) => formatBytes(bytes, settings, decimals);
+    res.locals.formatDiskUsage = (used, total) => formatDiskUsage(used, total, settings);
+    res.locals.formatMemory = (memory) => formatMemory(memory, settings);
+    res.locals.formatSpeed = (speed) => formatSpeed(speed, settings);
+    
+    // Add logo helper to views
+    res.locals.logoProperties = getLogoProperties(settings);
+    
     next();
   } catch (error) {
     // If there's an error, use default values
     res.locals.name = "Impulse";
     res.locals.logo = true;
+    res.locals.settings = {};
+    res.locals.captchaSettings = {};
     next();
   }
 });
@@ -205,6 +236,9 @@ app.use(express.static("public"));
  * Logs the loaded routes and mounts them to the Express application under the root path. This allows for
  * modular route definitions that can be independently maintained and easily scaled.
  */
+
+// Add 2FA enforcement middleware
+app.use(enforce2FA);
 
 const routesDir = path.join(__dirname, "routes");
 function loadRoutes(directory) {

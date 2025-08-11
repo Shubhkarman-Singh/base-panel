@@ -32,10 +32,12 @@ const upload = multer({
 
 async function fetchCommonSettings(req) {
   const settings = (await db.get("settings")) || {};
+  const { getUserAvatarUrl } = require("../../handlers/avatarHelper.js");
   return {
     req,
     user: req.user,
     settings,
+    getUserAvatarUrl
   };
 }
 
@@ -60,6 +62,12 @@ router.get("/admin/settings/smtp", isAdmin, async (req, res) => {
 router.get("/admin/settings/theme", isAdmin, async (req, res) => {
   const settings = await fetchCommonSettings(req);
   res.render("admin/settings/theme", settings);
+});
+
+router.get("/admin/settings/captcha", isAdmin, async (req, res) => {
+  const settings = await fetchCommonSettings(req);
+  const captchaSettings = (await db.get("captcha_settings")) || {};
+  res.render("admin/settings/captcha", { ...settings, captchaSettings });
 });
 
 router.post(
@@ -184,16 +192,29 @@ router.post(
   isAdmin,
   upload.single("logo"),
   async (req, res) => {
-    const { type } = req.body;
+    const { logoType, logoLink } = req.body;
 
     try {
       const settings = (await db.get("settings")) || {};
 
-      if (type === "image" && req.file) {
-        settings.logo = true; // Set logo to true in settings
-        await db.set("settings", settings); // Save settings with logo
+      if (logoType === "upload" && req.file) {
+        // Handle file upload
+        settings.logo = true;
+        settings.logoType = "upload";
+        settings.logoLink = null; // Clear any existing link
+        await db.set("settings", settings);
+        logAudit(req.user.userId, req.user.username, "logo:upload", req.ip);
         res.redirect("/admin/settings");
-      } else if (type === "none") {
+      } else if (logoType === "link" && logoLink) {
+        // Handle logo link
+        settings.logo = true;
+        settings.logoType = "link";
+        settings.logoLink = logoLink;
+        await db.set("settings", settings);
+        logAudit(req.user.userId, req.user.username, "logo:link", req.ip);
+        res.redirect("/admin/settings");
+      } else if (logoType === "none") {
+        // Remove logo
         const logoPath = path.join(
           __dirname,
           "..",
@@ -203,9 +224,14 @@ router.post(
           "logo.png"
         );
         if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath);
-        settings.logo = false; // Set logo to false in settings
-        await db.set("settings", settings); // Save settings without logo
-        logAudit(req.user.userId, req.user.username, "logo:edit", req.ip);
+        settings.logo = false;
+        settings.logoType = null;
+        settings.logoLink = null;
+        await db.set("settings", settings);
+        logAudit(req.user.userId, req.user.username, "logo:remove", req.ip);
+        res.redirect("/admin/settings");
+      } else if (logoType === "upload" || logoType === "link") {
+        // Handle form submission without file/link
         res.redirect("/admin/settings");
       } else {
         res.status(400).send("Invalid request");
@@ -254,6 +280,10 @@ router.post("/admin/settings/change/favicon", isAdmin, upload.single("favicon"),
 router.post("/admin/settings/change/avatar-provider", isAdmin, async (req, res) => {
   try {
     const { avatarProvider } = req.body;
+    // Prevent setting to 'custom' since we removed that option
+    if (avatarProvider === 'custom') {
+      return res.status(400).send("Custom avatar provider is not available");
+    }
     const settings = (await db.get("settings")) || {};
     settings.avatarProvider = avatarProvider;
     await db.set("settings", settings);
@@ -278,6 +308,8 @@ router.post("/admin/settings/toggle/custom-avatars", isAdmin, async (req, res) =
     res.status(500).send("Internal Server Error");
   }
 });
+
+
 
 // Unit prefix route
 router.post("/admin/settings/change/unit-prefix", isAdmin, async (req, res) => {
@@ -305,6 +337,38 @@ router.post("/admin/settings/change/2fa-requirement", isAdmin, async (req, res) 
     res.redirect("/admin/settings");
   } catch (err) {
     log.error("Error changing 2FA requirement:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// Captcha settings routes
+router.post("/admin/settings/toggle/captcha", isAdmin, async (req, res) => {
+  try {
+    const captchaSettings = (await db.get("captcha_settings")) || {};
+    captchaSettings.enabled = !captchaSettings.enabled;
+    await db.set("captcha_settings", captchaSettings);
+    logAudit(req.user.userId, req.user.username, "captcha:toggle", req.ip);
+    res.redirect("/admin/settings/captcha");
+  } catch (err) {
+    log.error("Error toggling captcha:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.post("/admin/settings/change/captcha", isAdmin, async (req, res) => {
+  try {
+    const { siteKey, secretKey, verifyDomain } = req.body;
+    const captchaSettings = (await db.get("captcha_settings")) || {};
+    
+    if (siteKey) captchaSettings.siteKey = siteKey;
+    if (secretKey) captchaSettings.secretKey = secretKey;
+    captchaSettings.verifyDomain = verifyDomain === 'on';
+    
+    await db.set("captcha_settings", captchaSettings);
+    logAudit(req.user.userId, req.user.username, "captcha:edit", req.ip);
+    res.redirect("/admin/settings/captcha?msg=CaptchaUpdated");
+  } catch (err) {
+    log.error("Error updating captcha settings:", err);
     res.status(500).send("Internal Server Error");
   }
 });

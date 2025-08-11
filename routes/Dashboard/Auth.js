@@ -18,6 +18,7 @@ const {
 } = require("../../handlers/email.js");
 const speakeasy = require("speakeasy");
 const bcrypt = require("bcrypt");
+const { verifyCaptcha } = require("../../utils/captchaMiddleware");
 const saltRounds = 10;
 
 const router = express.Router();
@@ -341,6 +342,7 @@ router.get("/auth/login", async (req, res, next) => {
 
 router.post(
   "/auth/login",
+  verifyCaptcha,
   passport.authenticate("local", {
     failureRedirect: "/login?err=InvalidCredentials&state=failed",
   }),
@@ -378,8 +380,10 @@ router.get("/2fa", async (req, res) => {
   if (!req.session.tempUser) {
     return res.redirect("/login");
   }
+  const settings = (await db.get("settings")) || {};
   res.render("auth/2fa", {
     req,
+    settings,
   });
 });
 
@@ -528,7 +532,7 @@ async function initializeRoutes() {
             }
           });
 
-          router.post("/auth/register", async (req, res) => {
+          router.post("/auth/register", verifyCaptcha, async (req, res) => {
             const { username, email, password } = req.body;
 
             try {
@@ -600,7 +604,7 @@ router.get("/auth/reset-password", async (req, res) => {
   }
 });
 
-router.post("/auth/reset-password", async (req, res) => {
+router.post("/auth/reset-password", verifyCaptcha, async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -637,9 +641,11 @@ router.get("/auth/reset/:token", async (req, res) => {
       return;
     }
 
+    const settings = (await db.get("settings")) || {};
     res.render("auth/password-reset-form", {
       req,
       token: token,
+      settings,
     });
   } catch (error) {
     log.error("Error rendering password reset form:", error);

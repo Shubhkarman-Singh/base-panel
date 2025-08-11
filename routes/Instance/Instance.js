@@ -35,11 +35,13 @@ router.get("/instances", isAuthenticated, async (req, res) => {
     }
   }
 
+  const settings = (await db.get("settings")) || {};
   res.render("instances", {
     req,
     user: req.user,
     instances,
     config: require("../../config.json"),
+    settings,
   });
 });
 
@@ -62,7 +64,8 @@ router.get("/instance/:id", async (req, res) => {
 
   const suspended = await isInstanceSuspended(req.user.userId, instance, id);
   if (suspended === true) {
-    return res.render("instance/suspended", { req, user: req.user });
+    const suspendedSettings = (await db.get("settings")) || {};
+    return res.render("instance/suspended", { req, user: req.user, settings: suspendedSettings });
   }
 
   if (instance.InternalState !== "READY") {
@@ -82,6 +85,7 @@ router.get("/instance/:id", async (req, res) => {
     readEula = eulaContent.includes("eula=true");
   }
 
+  const instanceSettings = (await db.get("settings")) || {};
   res.render("instance/instance", {
     req,
     user: req.user,
@@ -91,6 +95,7 @@ router.get("/instance/:id", async (req, res) => {
     domain,
     files,
     readEula,
+    settings: instanceSettings,
 
     addons: {
       plugins: allPluginData,

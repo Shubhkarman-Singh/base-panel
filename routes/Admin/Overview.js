@@ -17,6 +17,7 @@ router.get("/admin/overview", isAdmin, async (req, res) => {
     const imagesTotal = images.length;
     const instancesTotal = instances.length;
 
+    const settings = (await db.get("settings")) || {};
     res.render("admin/overview", {
       req,
       user: req.user,
@@ -25,6 +26,7 @@ router.get("/admin/overview", isAdmin, async (req, res) => {
       imagesTotal,
       instancesTotal,
       version: config.version,
+      settings,
     });
   } catch (error) {
     res

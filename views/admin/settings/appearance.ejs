@@ -21,19 +21,57 @@
             </form>
          </div>
          <div id="changelogoform" class="mt-6">
-            <label for="name" class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.panelLogo %></label>
-            <form action="/admin/settings/change/logo" class="mt-4" method="POST" enctype="multipart/form-data">
-               <div class="flex items-center mb-4">
-                  <input id="useImage" name="useImage" type="checkbox" class="w-4 h-4 text-neutral-600 bg-transparent border-white/5 rounded focus:ring-neutral-500 focus:ring-2">
-                  <label for="useImage" class="ml-2 text-sm font-medium text-neutral-400"><%= req.translations.image %></label>
+            <label for="logoLink" class="text-neutral-400 text-sm tracking-tight mb-2 block"><%= req.translations.panelLogo %></label>
+            
+            <!-- Logo Link Input -->
+            <input type="url" id="logoLink" name="logoLink" 
+                   class="w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent hover:bg-white/10 transition" 
+                   placeholder="https://example.com/logo.png" 
+                   value="<%= settings.logoLink || '' %>">
+            
+            <!-- Preview area (clickable for upload) -->
+            <div id="logoPreview" class="mb-6 p-4 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition group" onclick="triggerFileUpload()">
+               <div class="flex items-center space-x-4">
+                  <div class="relative">
+                     <img id="previewImage" class="h-16 w-16 rounded-xl object-cover border-2 border-dashed border-white/20 group-hover:border-white/40 transition" 
+                          src="<% if (settings.logo) { %><% if (settings.logoType === 'link' && settings.logoLink) { %><%= settings.logoLink %><% } else { %>/assets/logo.png<% } %><% } else { %>/assets/default-logo.svg<% } %>" 
+                          alt="Logo preview"
+                          onerror="this.src='/assets/default-logo.svg'">
+                     <div id="uploadOverlay" class="absolute inset-0 bg-black bg-opacity-50 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span class="text-white text-xs font-medium">Click to upload</span>
+                     </div>
+                  </div>
+                  <div class="flex-1">
+                     <p class="text-white text-sm font-medium">Logo Preview</p>
+                     <p class="text-neutral-400 text-xs" id="previewInfo">
+                        <% if (settings.logo) { %>
+                           <% if (settings.logoType === 'link' && settings.logoLink) { %>
+                              Linked image: <%= settings.logoLink %>
+                           <% } else { %>
+                              Uploaded image
+                           <% } %>
+                        <% } else { %>
+                           No logo set - click to upload or enter URL above
+                        <% } %>
+                     </p>
+                  </div>
                </div>
-               <div id="imageUploadBox" class="hidden mb-4">
-                  <label for="logo" class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.uploadLogo %></label>
-                  <input type="file" name="logo" id="logo" accept="image/*" class="block w-full text-sm text-neutral-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-white/5 file:text-neutral-300 hover:file:bg-white/10 transition">
-               </div>
-               <input type="hidden" name="type" id="logoType" value="none">
-               <button id="logoButton" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.removeLogo %></button>
-            </form>
+            </div>
+            
+            <!-- Hidden file input -->
+            <input type="file" id="logoFileInput" accept="image/*" style="display: none;">
+            
+            <!-- Action buttons -->
+            <div class="flex items-center space-x-4">
+               <button type="button" id="logoActionBtn" class="rounded-xl bg-white hover:bg-gray-100 text-gray-900 px-4 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-gray-500" onclick="<% if (settings.logo) { %>updateLogo()<% } else { %>updateLogo()<% } %>">
+                  <% if (settings.logo) { %>Update<% } else { %>Save<% } %>
+               </button>
+               <% if (settings.logo) { %>
+               <button type="button" class="rounded-xl bg-red-600 hover:bg-red-500 px-4 py-2 text-center text-sm font-medium text-white shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2" onclick="removeLogo()">
+                  Remove
+               </button>
+               <% } %>
+            </div>
          </div>
          <div id="registerpage" class="mt-6">
             <form action="/admin/settings/toggle/register" method="POST">
@@ -91,7 +129,7 @@
                   </div>
                   <input type="hidden" id="unitPrefix" name="unitPrefix" value="<%= settings.unitPrefix || 'decimal' %>">
                </div>
-               <button id="Save-Unit-Prefix" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+
             </form>
          </div>
          <div id="twofaform" class="mt-6">
@@ -113,7 +151,7 @@
                   </div>
                   <input type="hidden" id="twoFARequirement" name="twoFARequirement" value="<%= settings.twoFARequirement || 'none' %>">
                </div>
-               <button id="Save-2FA-Requirement" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+
             </form>
          </div>
       </div>
@@ -128,20 +166,22 @@
                <div class="custom-dropdown relative">
                   <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
                      <span id="avatarProviderText">
-                        <% if (settings.avatarProvider === 'dicebear') { %>DiceBear<% } else if (settings.avatarProvider === 'custom') { %>Custom<% } else { %>Gravatar<% } %>
+                        <% if (settings.avatarProvider === 'gravatar') { %>Gravatar<% } else if (settings.avatarProvider === 'dicebear') { %>DiceBear<% } else if (settings.avatarProvider === 'ui-avatars') { %>UI-Avatars<% } else if (settings.avatarProvider === 'boring-avatars') { %>Boring Avatars<% } else { %>Default<% } %>
                      </span>
                      <svg class="w-4 h-4 transition-transform dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                      </svg>
                   </button>
                   <div class="dropdown-menu absolute z-50 w-full mt-1 bg-neutral-800 border border-white/10 rounded-xl shadow-lg hidden">
-                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-t-xl" data-value="gravatar">Gravatar</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-t-xl" data-value="default">Default</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer" data-value="gravatar">Gravatar</div>
                      <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer" data-value="dicebear">DiceBear</div>
-                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-b-xl" data-value="custom">Custom</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer" data-value="ui-avatars">UI-Avatars</div>
+                     <div class="dropdown-item px-4 py-2 text-sm text-white hover:bg-white/10 cursor-pointer rounded-b-xl" data-value="boring-avatars">Boring Avatars</div>
                   </div>
-                  <input type="hidden" id="avatarProvider" name="avatarProvider" value="<%= settings.avatarProvider || 'gravatar' %>">
+                  <input type="hidden" id="avatarProvider" name="avatarProvider" value="<%= settings.avatarProvider || 'default' %>">
                </div>
-               <button id="Save-Avatar-Provider" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
+
             </form>
          </div>
          <div id="customavatarsform" class="mt-6 ml-8">
@@ -170,6 +210,33 @@
 
 <%- include('../../components/footer') %>
 
+<style>
+.fixed.inset-0 {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.bg-black.bg-opacity-50 {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.z-50 {
+  z-index: 50;
+}
+
+.max-w-md {
+  max-width: 28rem;
+}
+
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+</style>
+
 <script>
    // Custom Dropdown Functionality
    document.addEventListener('DOMContentLoaded', function() {
@@ -179,7 +246,13 @@
          const menu = dropdown.querySelector('.dropdown-menu');
          const arrow = dropdown.querySelector('.dropdown-arrow');
          const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-         const textSpan = toggle.querySelector('span');
+         const textSpan = toggle ? toggle.querySelector('span') : null;
+         
+         // Check if all required elements exist
+         if (!toggle || !menu || !arrow || !hiddenInput || !textSpan) {
+            console.warn('Dropdown elements missing, skipping dropdown setup');
+            return;
+         }
          
          toggle.addEventListener('click', function(e) {
             e.preventDefault();
@@ -189,13 +262,18 @@
             document.querySelectorAll('.dropdown-menu').forEach(otherMenu => {
                if (otherMenu !== menu) {
                   otherMenu.classList.add('hidden');
-                  otherMenu.parentElement.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+                  const parentArrow = otherMenu.parentElement.querySelector('.dropdown-arrow');
+                  if (parentArrow) {
+                     parentArrow.style.transform = 'rotate(0deg)';
+                  }
                }
             });
             
             // Toggle current dropdown
-            menu.classList.toggle('hidden');
-            arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (menu && arrow) {
+               menu.classList.toggle('hidden');
+               arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
          });
          
          // Handle dropdown item selection
@@ -204,24 +282,15 @@
                const value = this.getAttribute('data-value');
                const text = this.textContent;
                
-               hiddenInput.value = value;
-               textSpan.textContent = text;
-               menu.classList.add('hidden');
-               arrow.style.transform = 'rotate(0deg)';
+               if (hiddenInput) hiddenInput.value = value;
+               if (textSpan) textSpan.textContent = text;
+               if (menu) menu.classList.add('hidden');
+               if (arrow) arrow.style.transform = 'rotate(0deg)';
                
                // Auto-submit the form when dropdown value changes
                const form = dropdown.closest('form');
                if (form) {
-                  // Show loading state
-                  const button = form.querySelector('button[type="submit"]');
-                  if (button) {
-                     const originalText = button.textContent;
-                     button.textContent = 'Saving...';
-                     button.disabled = true;
-                     
-                     // Submit form
-                     form.submit();
-                  }
+                  form.submit();
                }
             });
          });
@@ -231,25 +300,168 @@
       document.addEventListener('click', function() {
          document.querySelectorAll('.dropdown-menu').forEach(menu => {
             menu.classList.add('hidden');
-            menu.parentElement.querySelector('.dropdown-arrow').style.transform = 'rotate(0deg)';
+            const parentArrow = menu.parentElement.querySelector('.dropdown-arrow');
+            if (parentArrow) {
+               parentArrow.style.transform = 'rotate(0deg)';
+            }
          });
       });
    });
 
-   // Logo upload functionality
-   document.getElementById('useImage').addEventListener('change', function() {
-     const imageUploadBox = document.getElementById('imageUploadBox');
-     const logoButton = document.getElementById('logoButton');
-     const logoType = document.getElementById('logoType');
-     
-     if (this.checked) {
-       imageUploadBox.classList.remove('hidden');
-       logoButton.textContent = '<%= req.translations.saveNewLogo %>';
-       logoType.value = 'image';
-     } else {
-       imageUploadBox.classList.add('hidden');
-       logoButton.textContent = '<%= req.translations.removeLogo %>';
-       logoType.value = 'none';
-     }
+   // Logo functionality
+   document.addEventListener('DOMContentLoaded', function() {
+      const logoLinkInput = document.getElementById('logoLink');
+      const logoFileInput = document.getElementById('logoFileInput');
+      const previewImage = document.getElementById('previewImage');
+      const previewInfo = document.getElementById('previewInfo');
+      const logoActionBtn = document.getElementById('logoActionBtn');
+      
+      // Check if elements exist
+      if (!logoLinkInput || !logoFileInput || !previewImage || !previewInfo || !logoActionBtn) {
+         console.error('Logo elements not found');
+         return;
+      }
+      
+      // Handle logo link input changes
+      logoLinkInput.addEventListener('input', function() {
+         const url = this.value.trim();
+         if (url) {
+            updatePreview(url, `Linked image: ${url}`);
+            updateButtonState(true);
+         } else {
+            resetPreview();
+            updateButtonState(false);
+         }
+      });
+      
+      // Handle file input changes
+      logoFileInput.addEventListener('change', function(e) {
+         const file = e.target.files[0];
+         if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+               updatePreview(e.target.result, `File: ${file.name}`);
+               updateButtonState(true);
+            };
+            reader.readAsDataURL(file);
+         }
+      });
+      
+      // Handle image load errors
+      previewImage.addEventListener('error', function() {
+         this.src = '/assets/default-logo.svg';
+         if (previewInfo) {
+            previewInfo.textContent = 'Failed to load image - using default';
+         }
+      });
    });
+   
+   function triggerFileUpload() {
+      document.getElementById('logoFileInput').click();
+   }
+   
+   function updatePreview(src, info) {
+      const previewImage = document.getElementById('previewImage');
+      const previewInfo = document.getElementById('previewInfo');
+      
+      if (previewImage && previewInfo) {
+         previewImage.src = src;
+         previewInfo.textContent = info;
+      }
+   }
+   
+   function resetPreview() {
+      const previewImage = document.getElementById('previewImage');
+      const previewInfo = document.getElementById('previewInfo');
+      
+      if (previewImage && previewInfo) {
+         <% if (settings.logo) { %>
+            <% if (settings.logoType === 'link' && settings.logoLink) { %>
+               previewImage.src = '<%= settings.logoLink %>';
+               previewInfo.textContent = 'Linked image: <%= settings.logoLink %>';
+            <% } else { %>
+               previewImage.src = '/assets/logo.png';
+               previewInfo.textContent = 'Uploaded image';
+            <% } %>
+         <% } else { %>
+            previewImage.src = '/assets/default-logo.svg';
+            previewInfo.textContent = 'No logo set - click to upload or enter URL above';
+         <% } %>
+      }
+   }
+   
+   function updateButtonState(hasChanges) {
+      const logoActionBtn = document.getElementById('logoActionBtn');
+      
+      if (!logoActionBtn) return;
+      
+      if (hasChanges) {
+         logoActionBtn.textContent = 'Update';
+         logoActionBtn.className = 'rounded-xl bg-white hover:bg-gray-100 text-gray-900 px-4 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-gray-500';
+      } else {
+         <% if (settings.logo) { %>
+            logoActionBtn.textContent = 'Update';
+         <% } else { %>
+            logoActionBtn.textContent = 'Save';
+         <% } %>
+         logoActionBtn.className = 'rounded-xl bg-white hover:bg-gray-100 text-gray-900 px-4 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-gray-500';
+      }
+   }
+   
+   async function updateLogo() {
+      const logoLinkInput = document.getElementById('logoLink');
+      const logoFileInput = document.getElementById('logoFileInput');
+      const formData = new FormData();
+      
+      // Check if file is selected first (priority over URL)
+      if (logoFileInput.files && logoFileInput.files[0]) {
+         formData.append('logoType', 'upload');
+         formData.append('logo', logoFileInput.files[0]);
+      } else if (logoLinkInput.value.trim()) {
+         formData.append('logoType', 'link');
+         formData.append('logoLink', logoLinkInput.value.trim());
+      } else {
+         alert('Please enter a logo URL or click on the preview to upload a file');
+         return;
+      }
+      
+      try {
+         const response = await fetch('/admin/settings/change/logo', {
+            method: 'POST',
+            body: formData
+         });
+         
+         if (response.ok) {
+            window.location.reload();
+         } else {
+            alert('Error updating logo');
+         }
+      } catch (error) {
+         console.error('Error:', error);
+         alert('Error updating logo');
+      }
+   }
+   
+   async function removeLogo() {
+      if (confirm('Are you sure you want to remove the logo?')) {
+         try {
+            const formData = new FormData();
+            formData.append('logoType', 'none');
+            
+            const response = await fetch('/admin/settings/change/logo', {
+               method: 'POST',
+               body: formData
+            });
+            
+            if (response.ok) {
+               window.location.reload();
+            } else {
+               alert('Error removing logo');
+            }
+         } catch (error) {
+            console.error('Error:', error);
+            alert('Error removing logo');
+         }
+      }
+   }
 </script>
