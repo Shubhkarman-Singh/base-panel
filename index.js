@@ -56,9 +56,15 @@ app.use(
         intervalMs: 9000000,
       },
     }),
-    secret: config.session_secret || "secret",
-    resave: true,
-    saveUninitialized: true,
+    secret: config.session_secret || generateRandomString(64),
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something stored
+    cookie: {
+      secure: config.mode === 'production', // Require HTTPS in production
+      httpOnly: true, // Prevent XSS attacks
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'strict' // CSRF protection
+    }
   })
 );
 
