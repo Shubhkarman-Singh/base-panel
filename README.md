@@ -13,7 +13,7 @@
 
 It aims to be a simple and efficient solution for hosting and managing instances with a clean web interface and container-based deployment.
 
-- Documentation: [impulse.dev](https://impulse.dev)
+- Documentation: [coming soon](https://impulse.dev)
 
 
 ## Configuration
