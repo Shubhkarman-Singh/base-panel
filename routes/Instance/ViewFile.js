@@ -13,8 +13,9 @@ const path = require("path");
 
 const plugins = loadPlugins(path.join(__dirname, "../../plugins"));
 
-router.get("/instance/:id/files/view/:file", async (req, res) => {
-  if (!req.user) return res.redirect("/");
+const { requireAuth, requireInstanceAccess } = require("../../utils/authMiddleware.js");
+
+router.get("/instance/:id/files/view/:file", requireAuth, requireInstanceAccess, async (req, res) => {
 
   const { id, file } = req.params;
   if (!id || !file) return res.redirect("../instances");

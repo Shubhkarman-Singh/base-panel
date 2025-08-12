@@ -368,6 +368,15 @@ app.set("views", [path.join(__dirname, "views"), ...PluginViewsDir]);
 // Init
 init();
 
+// Run production startup tasks
+const { runStartupTasks, scheduleMaintenanceTasks } = require("./utils/startupTasks.js");
+runStartupTasks().then(() => {
+  scheduleMaintenanceTasks();
+}).catch(error => {
+  log.error("Startup tasks failed:", error);
+  process.exit(1); // Exit if critical startup tasks fail
+});
+
 console.log(chalk.gray(ascii) + chalk.white(`version v${config.version}\n`));
 app.listen(config.port, () =>
   log.info(`Impulse is listening on port ${config.port}`)

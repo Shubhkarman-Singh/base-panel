@@ -9,46 +9,8 @@ const log = new (require("cat-loggr"))();
 
 const saltRounds = 10;
 
-/**
- * Middleware function to validate the API key provided in the request headers.
- *
- * Checks for the presence of an 'x-api-key' header in the incoming request.
- * If the header is missing, responds with a 401 status code and an error message.
- *
- * Retrieves the list of valid API keys from the database and verifies if the provided
- * API key exists in the list. If the key is invalid, responds with a 401 status code.
- *
- * If the API key is valid, attaches it to the request object and calls the next middleware.
- *
- * Logs any errors encountered during the process and responds with a 500 status code
- * in case of a server error.
- *
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- */
-async function validateApiKey(req, res, next) {
-  const apiKey = req.headers["x-api-key"];
-
-  if (!apiKey) {
-    return res.status(401).json({ error: "API key is required" });
-  }
-
-  try {
-    const apiKeys = (await db.get("apiKeys")) || [];
-    const validKey = apiKeys.find((key) => key.key === apiKey);
-
-    if (!validKey) {
-      return res.status(401).json({ error: "API Key Invalid" });
-    }
-
-    req.apiKey = validKey;
-    next();
-  } catch (error) {
-    log.error("Error validating API key:", error);
-    res.status(500).json({ error: "Failed to validate API key" });
-  }
-}
+// Import enhanced API key security
+const { validateApiKey, requireApiPermission } = require("../../../utils/apiKeySecurity.js");
 
 /**
  * GET /api/v1/users/:type?/:value?
@@ -59,7 +21,7 @@ async function validateApiKey(req, res, next) {
  * @param {string} value - The value of the user to retrieve. Only required if type is 'email' or 'username'.
  * @returns {Object} The retrieved user object.
  */
-router.get("/api/v1/users/:type?/:value?", validateApiKey, async (req, res) => {
+router.get("/api/v1/users/:type?/:value?", validateApiKey, requireApiPermission(['user:read', 'admin']), async (req, res) => {
   try {
     const { type, value } = req.params;
     const users = (await db.get("users")) || [];
@@ -104,6 +66,7 @@ router.get("/api/v1/users/:type?/:value?", validateApiKey, async (req, res) => {
 router.post(
   "/api/v1/user/:userId/instances",
   validateApiKey,
+  requireApiPermission(['instance:read', 'admin']),
   async (req, res) => {
     const { userId } = req.params;
 
@@ -140,7 +103,7 @@ router.post(
  * @param {boolean} admin - The admin status of the new user
  * @returns {Object} The created user object
  */
-router.post("/api/v1/user/create-user", validateApiKey, async (req, res) => {
+router.post("/api/v1/user/create-user", validateApiKey, requireApiPermission(['user:create', 'admin']), async (req, res) => {
   try {
     const { username, email, password, userId, admin } = req.body;
 
@@ -204,6 +167,7 @@ router.post("/api/v1/user/create-user", validateApiKey, async (req, res) => {
 router.post(
   "/api/v1/user/:email/reset-password",
   validateApiKey,
+  requireApiPermission(['user:manage', 'admin']),
   async (req, res) => {
     const { email } = req.body;
 
@@ -248,6 +212,7 @@ router.post(
 router.post(
   "/api/v1/instances/suspend/:id",
   validateApiKey,
+  requireApiPermission(['instance:manage', 'admin']),
   async (req, res) => {
     const { id } = req.params;
 
@@ -293,6 +258,7 @@ router.post(
 router.post(
   "/api/v1/instances/unsuspend/:id",
   validateApiKey,
+  requireApiPermission(['instance:manage', 'admin']),
   async (req, res) => {
     const { id } = req.params;
 
@@ -346,7 +312,7 @@ router.post(
  *
  * @returns {Object} The list of instances
  */
-router.get("/api/v1/instances", validateApiKey, async (req, res) => {
+router.get("/api/v1/instances", validateApiKey, requireApiPermission(['instance:read', 'admin']), async (req, res) => {
   try {
     const instances = (await db.get("instances")) || [];
     res.json(instances);
@@ -372,7 +338,7 @@ router.get("/api/v1/instances", validateApiKey, async (req, res) => {
  * @param {boolean} primary - The primary status of the instance
  * @returns {Object} The created instance object
  */
-router.post("/api/v1/instances/deploy", validateApiKey, async (req, res) => {
+router.post("/api/v1/instances/deploy", validateApiKey, requireApiPermission(['instance:create', 'admin']), async (req, res) => {
   const {
     image,
     imagename,
@@ -466,6 +432,7 @@ router.post("/api/v1/instances/deploy", validateApiKey, async (req, res) => {
 router.delete(
   "/api/v1/instance/:id/delete",
   validateApiKey,
+  requireApiPermission(['instance:delete', 'admin']),
   async (req, res) => {
     const { id } = req.params;
 
@@ -498,7 +465,7 @@ router.delete(
  * @param {string} id - The id of the instance
  * @returns {Object} The retrieved instance
  */
-router.post("/api/v1/instance/:id", validateApiKey, async (req, res) => {
+router.post("/api/v1/instance/:id", validateApiKey, requireApiPermission(['instance:read', 'admin']), async (req, res) => {
   const { id } = req.params;
 
   if (!id) {
@@ -562,7 +529,7 @@ router.get("/api/v1/name", validateApiKey, async (req, res) => {
  *
  * @returns {Object} The retrieved nodes
  */
-router.get("/api/v1/nodes", validateApiKey, async (req, res) => {
+router.get("/api/v1/nodes", validateApiKey, requireApiPermission(['node:read', 'admin']), async (req, res) => {
   try {
     const nodes = (await db.get("nodes")) || [];
     const nodeDetails = await Promise.all(
@@ -589,7 +556,7 @@ router.get("/api/v1/nodes", validateApiKey, async (req, res) => {
  * @param {string} port - The port of the node
  * @returns {Object} The created node
  */
-router.post("/api/v1/nodes/create", validateApiKey, async (req, res) => {
+router.post("/api/v1/nodes/create", validateApiKey, requireApiPermission(['node:create', 'admin']), async (req, res) => {
   const node = {
     id: uuidv4(),
     name: req.body.name,
@@ -634,7 +601,7 @@ router.post("/api/v1/nodes/create", validateApiKey, async (req, res) => {
  * @param {string} id - The id of the node
  * @returns {Object} The deleted node
  */
-router.delete("/api/v1/nodes/:id/delete", validateApiKey, async (req, res) => {
+router.delete("/api/v1/nodes/:id/delete", validateApiKey, requireApiPermission(['node:delete', 'admin']), async (req, res) => {
   const { id } = req.params;
   const nodes = (await db.get("nodes")) || [];
   const newNodes = nodes.filter((id) => id !== id);

@@ -8,7 +8,9 @@ const log = new (require("cat-loggr"))();
 
 const plugins = loadPlugins(path.join(__dirname, "../../plugins"));
 
-router.get("/instance/:id/users", async (req, res) => {
+const { requireAuth, requireInstanceAccess } = require("../../utils/authMiddleware.js");
+
+router.get("/instance/:id/users", requireAuth, requireInstanceAccess, async (req, res) => {
   const { id } = req.params;
 
   try {
