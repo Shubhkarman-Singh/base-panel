@@ -1,15 +1,212 @@
+# ==============================================
+# DEPENDENCIES
+# ==============================================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 package-lock.json
+yarn.lock
 bun.lockb
 pnpm-lock.yaml
 pnpm-workspace.yaml
 bun.lock
 
+# ==============================================
+# SECURITY & SENSITIVE DATA
+# ==============================================
+
+# Environment variables (CRITICAL - NEVER COMMIT)
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Configuration files with sensitive data
+config.json
+config.local.json
+config.production.json
+
+# API keys and secrets
+secrets/
+keys/
+certificates/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ==============================================
+# DATABASES & STORAGE
+# ==============================================
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
 impulse.db
 sessions.db
+test.db
 
+# Database dumps and backups
+*.sql
+*.dump
+backups/
+db_backups/
+
+# ==============================================
+# LOGS & TEMPORARY FILES
+# ==============================================
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary directories
 tmp/
+temp/
+.tmp/
+.temp/
 
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# ==============================================
+# DEVELOPMENT & BUILD
+# ==============================================
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+out/
+
+# Browser-sync configuration
 bs-config.json
+bs-config.js
+
+# ==============================================
+# PLUGINS & EXTENSIONS
+# ==============================================
+
+# Plugin configurations
 plugins/plugins.json
-config.json
+plugins/config.json
+
+# User-installed plugins (keep core plugins)
+plugins/user/
+plugins/custom/
+
+# ==============================================
+# UPLOADS & USER CONTENT
+# ==============================================
+
+# File uploads
+uploads/
+public/uploads/
+storage/uploads/
+
+# User avatars and media
+public/avatars/
+public/media/
+storage/media/
+
+# ==============================================
+# SECURITY REPORTS & AUDITS
+# ==============================================
+
+# Security audit reports
+security-audit-*.json
+security-audit-*.html
+vulnerability-report-*.json
+
+# Backup files created by security migration
+config.json.backup.*
+*.backup.*
+
+# ==============================================
+# DOCKER & DEPLOYMENT
+# ==============================================
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Deployment scripts with sensitive data
+deploy.sh
+deploy.local.sh
+
+# ==============================================
+# TESTING
+# ==============================================
+
+# Test results
+test-results/
+test-reports/
+.jest/
+
+# ==============================================
+# MISCELLANEOUS
+# ==============================================
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Local development overrides
+local/
+*.local
+
+# ==============================================
+# SECURITY NOTES
+# ==============================================
+# 
+# IMPORTANT: This .gitignore is designed to prevent
+# accidental commits of sensitive data. Always:
+# 
+# 1. Review files before committing
+# 2. Use 'git status' to check what will be committed
+# 3. Never force-add ignored files with 'git add -f'
+# 4. Regularly audit your repository for sensitive data
+# 5. Use environment variables for all secrets
+# 
+# If you accidentally commit sensitive data:
+# 1. Remove it immediately
+# 2. Change all exposed credentials
+# 3. Consider using git-filter-branch or BFG Repo-Cleaner
+# 4. Force push the cleaned history (if safe to do so)
+# 
+# ==============================================

@@ -149,8 +149,8 @@ class CSRFProtection {
       }
 
       // Get configuration
-      const config = require("../config.json");
-      const isDevelopment = config.mode === 'development';
+      const configManager = require("../utils/configManager");
+      const isDevelopment = configManager.get("mode") === 'development';
 
       const sessionId = req.session?.id;
       const token = req.body._csrf || req.headers['x-csrf-token'];

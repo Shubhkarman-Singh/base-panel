@@ -40,7 +40,12 @@ router.get("/instances", isAuthenticated, async (req, res) => {
     req,
     user: req.user,
     instances,
-    config: require("../../config.json"),
+    config: {
+      version: require("../../utils/configManager").get("version"),
+      baseUri: require("../../utils/configManager").get("baseUri"),
+      domain: require("../../utils/configManager").get("domain"),
+      port: require("../../utils/configManager").get("port")
+    },
     settings,
   });
 });
@@ -72,8 +77,9 @@ router.get("/instance/:id", async (req, res) => {
     return res.redirect("/instances?err=NOTACTIVEYET");
   }
 
-  const config = require("../../config.json");
-  const { port, domain } = config;
+  const configManager = require("../../utils/configManager");
+  const port = configManager.get("port");
+  const domain = configManager.get("domain");
 
   const allPluginData = Object.values(plugins).map((plugin) => plugin.config);
   const files = await fetchFiles(instance, "");

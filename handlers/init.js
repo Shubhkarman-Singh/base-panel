@@ -1,5 +1,5 @@
 const { db } = require("../handlers/db.js");
-const config = require("../config.json");
+const configManager = require("../utils/configManager");
 const { v4: uuidv4 } = require("uuid");
 const log = new (require("cat-loggr"))();
 
@@ -38,7 +38,7 @@ async function init() {
     const info = {
       impulseId: impulseId,
       setupTime: setupTime,
-      originalVersion: config.version,
+      originalVersion: configManager.get("version"),
     };
 
     await db.set("impulse_instance", info);

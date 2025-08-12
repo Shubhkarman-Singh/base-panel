@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { db } = require("../../handlers/db.js");
-const config = require("../../config.json");
+const configManager = require("../../utils/configManager");
 const { isAdmin } = require("../../utils/isAdmin.js");
 
 router.get("/admin/overview", isAdmin, async (req, res) => {
@@ -25,7 +25,7 @@ router.get("/admin/overview", isAdmin, async (req, res) => {
       nodesTotal,
       imagesTotal,
       instancesTotal,
-      version: config.version,
+      version: configManager.get("version"),
       settings,
     });
   } catch (error) {

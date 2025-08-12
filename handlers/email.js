@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 const { db } = require("./db.js");
-const config = require("../config.json");
+const configManager = require("../utils/configManager");
 
 async function getSMTPSettings() {
   const smtpSettings = await db.get("smtp_settings");
@@ -69,7 +69,7 @@ async function sendEmail(mailOptions) {
 
 async function sendWelcomeEmail(email, username, loginUrl = null) {
   const { smtpSettings, name } = await getSMTPSettings();
-  const baseUrl = loginUrl || require("../config.json").baseUri || "http://localhost:3000";
+  const baseUrl = loginUrl || configManager.get("baseUri") || "http://localhost:3000";
   const fullLoginUrl = `${baseUrl}/auth`;
   
   const mailOptions = {
@@ -92,7 +92,7 @@ async function sendVerificationEmail(email, token) {
       <div>
         <h2>Verify Your Email Address</h2>
         <p>Thank you for registering on ${name}. Please click the button below to verify your email address:</p>
-        <a href="${config.baseUri}/verify/${token}">Verify Email Address</a>
+        <a href="${configManager.get("baseUri")}/verify/${token}">Verify Email Address</a>
         <p>If you didn't create an account, please disregard this email.</p>
         <p>Thanks,<br/>The ${name} Team</p>
       </div>
@@ -132,7 +132,7 @@ async function sendPasswordResetEmail(email, token) {
       <div>
         <h2>Password Reset Request</h2>
         <p>We received a request to reset your password. Click the button below to reset it:</p>
-        <a href="${config.baseUri}/auth/reset/${token}">Reset Password</a>
+        <a href="${configManager.get("baseUri")}/auth/reset/${token}">Reset Password</a>
         <p>If you didn't request a password reset, please ignore this email.</p>
         <p>Thank you,<br/>The ${name} Team</p>
       </div>

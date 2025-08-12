@@ -237,7 +237,7 @@ router.post("/nodes/delete", isAdmin, async (req, res) => {
 /**
  * POST /nodes/configure
  * Allows a node to set its own access key using the configureKey.
- * The request must include a valid authKey from config.json for security.
+ * The request must include a valid authKey from configuration for security.
  */
 router.post("/nodes/configure", async (req, res) => {
   const { configureKey, accessKey } = req.query;

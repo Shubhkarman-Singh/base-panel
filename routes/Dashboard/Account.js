@@ -11,11 +11,12 @@ const { db } = require("../../handlers/db.js");
 const bcrypt = require("bcrypt");
 const speakeasy = require("speakeasy");
 const qrcode = require("qrcode");
-const config = require("../../config.json");
-const saltRounds = config.saltRounds || 10;
-const log = new (require("cat-loggr"))();
+const configManager = require("../../utils/configManager");
+const saltRounds = configManager.get("saltRounds") || 10;
+const log = require("../../utils/secureLogger");
 const { isAuthenticated } = require("../../handlers/auth.js");
 const { InputValidator } = require("../../utils/inputValidation");
+const dataSanitizer = require("../../utils/dataSanitizer");
 
 async function doesUserExist(username) {
   const users = await db.get("users");
@@ -27,22 +28,51 @@ async function doesUserExist(username) {
 }
 
 router.get("/account", async (req, res) => {
-  const { getUserAvatarUrl } = require("../../handlers/avatarHelper.js");
-  const settings = (await db.get("settings")) || {};
-  
-  res.render("account", {
-    req,
-    user: req.user,
-    users: (await db.get("users")) || [],
-    settings,
-    getUserAvatarUrl
-  });
+  try {
+    const { getUserAvatarUrl } = require("../../handlers/avatarHelper.js");
+    const settings = (await db.get("settings")) || {};
+    const users = (await db.get("users")) || [];
+    
+    // Sanitize user data for template rendering
+    const sanitizedUsers = dataSanitizer.sanitizeUsers(users, {
+      includeEmail: false,
+      includeAdminStatus: false,
+      includePersonalData: false
+    });
+    
+    // Create safe profile for current user (includes their own email)
+    const userProfile = dataSanitizer.createUserProfile(req.user);
+    
+    res.render("account", {
+      req,
+      user: userProfile,
+      users: sanitizedUsers,
+      settings: dataSanitizer.removeSensitiveFields(settings),
+      getUserAvatarUrl
+    });
+  } catch (error) {
+    log.error("Error loading account page:", dataSanitizer.sanitizeError(error));
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 router.get("/accounts", async (req, res) => {
-  let users = (await db.get("users")) || [];
+  try {
+    let users = (await db.get("users")) || [];
 
-  res.send(users);
+    // Use data sanitizer for consistent and secure data filtering
+    const sanitizedUsers = dataSanitizer.sanitizeUsers(users, {
+      includeEmail: false,        // Never include email in public listings
+      includeAdminStatus: true,   // Include admin status for UI purposes
+      includePersonalData: true   // Include non-sensitive personal data
+    });
+
+    log.info(`User accounts data requested by user: ${req.user?.username || 'unknown'}`);
+    res.json(sanitizedUsers);
+  } catch (error) {
+    log.error("Error fetching user accounts:", dataSanitizer.sanitizeError(error));
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 router.get("/check-username", async (req, res) => {

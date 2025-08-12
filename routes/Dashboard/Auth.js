@@ -7,7 +7,7 @@
 
 const express = require("express");
 const passport = require("passport");
-const log = new (require("cat-loggr"))();
+const log = require("../../utils/secureLogger");
 const LocalStrategy = require("passport-local").Strategy;
 const { v4: uuidv4 } = require("uuid");
 const { db } = require("../../handlers/db.js");

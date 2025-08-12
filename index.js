@@ -11,6 +11,13 @@
  *
  */
 
+// Load environment variables from .env file first
+try {
+  require('dotenv').config();
+} catch (error) {
+  // dotenv is optional - if not installed, just use system environment variables
+}
+
 /**
  * @fileoverview Main server file for Impulse Panel. Sets up the express application,
  * configures middleware for sessions, body parsing, and websocket enhancements, and dynamically loads route
@@ -22,7 +29,17 @@ const session = require("express-session");
 const passport = require("passport");
 const bodyParser = require("body-parser");
 const fs = require("node:fs");
-const config = require("./config.json");
+const configManager = require("./utils/configManager");
+const startupValidation = require("./utils/startupValidation");
+
+// Run startup validation
+const validationResults = startupValidation.validate();
+if (!validationResults.success) {
+  console.error('❌ Startup validation failed. Please fix the errors above before starting the application.');
+  process.exit(1);
+}
+
+const config = configManager.loadConfig();
 const ascii = fs.readFileSync("./handlers/ascii.txt", "utf8");
 const app = express();
 const path = require("path");
@@ -47,7 +64,7 @@ plugins = Object.values(plugins).map((plugin) => plugin.config);
 
 const { init } = require("./handlers/init.js");
 
-const log = new (require("cat-loggr"))();
+const log = require("./utils/secureLogger");
 
 app.use(
   session({
@@ -58,11 +75,11 @@ app.use(
         intervalMs: 9000000,
       },
     }),
-    secret: config.session_secret || generateRandomString(64),
+    secret: configManager.get("session_secret") || generateRandomString(64),
     resave: false, // Don't save session if unmodified
     saveUninitialized: false, // Don't create session until something stored
     cookie: {
-      secure: config.mode === 'production', // Require HTTPS in production
+      secure: configManager.get("mode") === 'production', // Require HTTPS in production
       httpOnly: true, // Prevent XSS attacks
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'strict' // CSRF protection
@@ -77,7 +94,7 @@ app.use(
  * Finally, it sets up static file serving and starts listening on a specified port.
  */
 // Configure Express proxy trust based on environment
-if (config.mode === 'production') {
+if (configManager.get("mode") === 'production') {
   // In production, only trust specific proxy IPs (configure as needed)
   app.set('trust proxy', 1); // Trust first proxy only
 } else {
@@ -108,7 +125,7 @@ const generalRateLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   // Skip validation warnings in development
-  validate: config.mode !== 'development',
+  validate: configManager.get("mode") !== 'development',
 });
 
 const authRateLimiter = rateLimit({
@@ -119,7 +136,7 @@ const authRateLimiter = rateLimit({
     retryAfter: "15 minutes"
   },
   skipSuccessfulRequests: true, // Don't count successful requests
-  validate: config.mode !== 'development',
+  validate: configManager.get("mode") !== 'development',
 });
 
 const apiRateLimiter = rateLimit({
@@ -129,7 +146,7 @@ const apiRateLimiter = rateLimit({
     error: "API rate limit exceeded, please try again later.",
     retryAfter: "15 minutes"
   },
-  validate: config.mode !== 'development',
+  validate: configManager.get("mode") !== 'development',
 });
 
 const strictRateLimiter = rateLimit({
@@ -139,7 +156,7 @@ const strictRateLimiter = rateLimit({
     error: "Rate limit exceeded for sensitive operation, please try again later.",
     retryAfter: "1 minute"
   },
-  validate: config.mode !== 'development',
+  validate: configManager.get("mode") !== 'development',
 });
 
 // Apply general rate limiting to all requests
@@ -154,7 +171,7 @@ const passwordResetLimiter = rateLimit({
     retryAfter: "1 hour"
   },
   skipSuccessfulRequests: false, // Count all attempts
-  validate: config.mode !== 'development',
+  validate: configManager.get("mode") !== 'development',
 });
 
 // Apply specific rate limiting to auth routes
@@ -220,23 +237,18 @@ function replaceRandomValues(obj) {
 }
 
 /**
- * Updates the config.json file by replacing "random" values with random strings.
+ * DEPRECATED: Updates the config.json file by replacing "random" values with random strings.
+ * This function is deprecated in favor of environment variable configuration.
+ * Use the migration tool: node utils/migrateSecurity.js
  */
 async function updateConfig() {
-  const configPath = "./config.json";
-
-  try {
-    let configData = fs.readFileSync(configPath, "utf8");
-    let config = JSON.parse(configData);
-
-    replaceRandomValues(config);
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf8");
-  } catch (error) {
-    log.error("Error updating config:", error);
-  }
+  // This function is deprecated - configuration should now use environment variables
+  // Run: node utils/migrateSecurity.js to migrate to secure configuration
+  log.info("updateConfig() is deprecated. Use environment variables for configuration.");
 }
 
-updateConfig();
+// Skip automatic config update - use environment variables instead
+// updateConfig();
 
 function getLanguages() {
   return fs.readdirSync(__dirname + "/lang").map((file) => file.split(".")[0]);
@@ -269,8 +281,8 @@ app.use(async (req, res, next) => {
     const captchaSettings = (await db.get("captcha_settings")) || {};
 
     res.locals.languages = getLanguages();
-    res.locals.ogTitle = config.ogTitle;
-    res.locals.ogDescription = config.ogDescription;
+    res.locals.ogTitle = configManager.get("ogTitle");
+    res.locals.ogDescription = configManager.get("ogDescription");
     res.locals.footer = settings.footer || "";
     res.locals.theme = theme;
     res.locals.name = settings.name || "Impulse";
@@ -302,7 +314,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-if (config.mode === "production" || false) {
+if (configManager.get("mode") === "production" || false) {
   app.use((req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
     res.setHeader("Pragma", "no-cache");
@@ -377,9 +389,15 @@ runStartupTasks().then(() => {
   process.exit(1); // Exit if critical startup tasks fail
 });
 
-console.log(chalk.gray(ascii) + chalk.white(`version v${config.version}\n`));
-app.listen(config.port, () =>
-  log.info(`Impulse is listening on port ${config.port}`)
+console.log(chalk.gray(ascii) + chalk.white(`version v${configManager.get("version")}\n`));
+log.info("Impulse Panel starting up", { 
+  version: configManager.get("version"), 
+  mode: configManager.get("mode"),
+  port: configManager.get("port"),
+  config: configManager.getSanitizedConfig()
+});
+app.listen(configManager.get("port"), () =>
+  log.info(`Impulse is listening on port ${configManager.get("port")}`)
 );
 
 app.get("*", async function (req, res) {

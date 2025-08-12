@@ -34,20 +34,20 @@ function requireAuth(req, res, next) {
   // Verify user still exists in database
   db.get("users").then(users => {
     const currentUser = users?.find(u => u.userId === req.user.userId);
-    
+
     if (!currentUser) {
       logSecurityEvent(SECURITY_EVENTS.SESSION_HIJACK_ATTEMPT, req.user.userId, req.ip, {
         userAgent: req.get('User-Agent'),
         sessionId: req.sessionID
       }, 'high');
-      
+
       req.session.destroy();
       if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
         return res.status(401).json({ error: "User account not found" });
       }
       return res.redirect("/auth");
     }
-    
+
     // Update req.user with fresh data from database
     req.user = currentUser;
     next();
@@ -69,7 +69,7 @@ function requireAuth(req, res, next) {
  */
 function requireInstanceAccess(req, res, next) {
   const instanceId = req.params.id;
-  
+
   if (!instanceId) {
     return res.status(400).json({ error: "Instance ID required" });
   }
@@ -81,23 +81,23 @@ function requireInstanceAccess(req, res, next) {
 
   // Check if user has access to this specific instance
   db.get(`${req.user.userId}_instances`).then(userInstances => {
-    const hasAccess = userInstances?.some(instance => 
+    const hasAccess = userInstances?.some(instance =>
       instance.Id === instanceId || instance.ContainerId === instanceId
     );
-    
+
     if (!hasAccess) {
       logSecurityEvent(SECURITY_EVENTS.PERMISSION_DENIED, req.user.userId, req.ip, {
         resource: 'instance',
         instanceId: instanceId,
         userAgent: req.get('User-Agent')
       }, 'medium');
-      
+
       if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
         return res.status(403).json({ error: "Access denied to this instance" });
       }
       return res.redirect("/instances");
     }
-    
+
     next();
   }).catch(error => {
     log.error("Instance access verification error:", error);
@@ -120,19 +120,19 @@ function requireAdmin(req, res, next) {
         userAgent: req.get('User-Agent'),
         route: req.originalUrl
       }, 'high');
-      
+
       if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
         return res.status(403).json({ error: "Administrator privileges required" });
       }
       return res.redirect("/instances");
     }
-    
+
     // Log successful admin access
     logSecurityEvent(SECURITY_EVENTS.ADMIN_ACCESS, req.user.userId, req.ip, {
       userAgent: req.get('User-Agent'),
       route: req.originalUrl
     }, 'medium');
-    
+
     next();
   });
 }
@@ -146,10 +146,10 @@ function requireAdmin(req, res, next) {
  */
 function trackAuthAttempt(req, res, next) {
   const clientIP = req.ip || req.connection.remoteAddress;
-  
+
   // Log authentication attempt for monitoring
   log.info(`Auth attempt from IP: ${clientIP}, User-Agent: ${req.get('User-Agent')}`);
-  
+
   next();
 }
 
