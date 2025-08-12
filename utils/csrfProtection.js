@@ -56,13 +56,23 @@ class CSRFProtection {
       return false;
     }
 
-    // Check if token was already used (one-time use)
-    if (tokenData.used) {
+    // Allow token reuse within a short time window (5 minutes) to handle multiple form submissions
+    const reuseWindow = 5 * 60 * 1000; // 5 minutes
+    const now = Date.now();
+    
+    if (tokenData.used && (now - tokenData.lastUsed) < reuseWindow) {
+      // Token was recently used, allow reuse within the window
+      tokenData.lastUsed = now;
+      this.tokenStore.set(key, tokenData);
+      return true;
+    } else if (tokenData.used && (now - tokenData.lastUsed) >= reuseWindow) {
+      // Token is too old for reuse
       return false;
     }
 
-    // Mark token as used
+    // Mark token as used for the first time
     tokenData.used = true;
+    tokenData.lastUsed = now;
     this.tokenStore.set(key, tokenData);
 
     return true;
@@ -77,7 +87,11 @@ class CSRFProtection {
     let cleaned = 0;
 
     for (const [key, data] of this.tokenStore.entries()) {
-      if (now - data.timestamp > maxAge || data.used) {
+      // Clean up tokens that are expired or haven't been used in a long time
+      const isExpired = now - data.timestamp > maxAge;
+      const isStale = data.used && data.lastUsed && (now - data.lastUsed) > maxAge;
+      
+      if (isExpired || isStale) {
         this.tokenStore.delete(key);
         cleaned++;
       }
@@ -106,6 +120,7 @@ class CSRFProtection {
             next();
           });
         } else {
+          // Always generate a fresh token for each request to avoid one-time use issues
           const token = this.createToken(req.session.id);
           res.locals.csrfToken = token;
           next();
@@ -133,15 +148,17 @@ class CSRFProtection {
         return next();
       }
 
-      // In development mode, be more lenient but still validate when token is present
+      // Get configuration
       const config = require("../config.json");
       const isDevelopment = config.mode === 'development';
 
       const sessionId = req.session?.id;
       const token = req.body._csrf || req.headers['x-csrf-token'];
 
-      // Debug logging
-      log.debug(`CSRF validation: sessionId=${sessionId}, token=${token ? 'present' : 'missing'}, path=${req.path}`);
+      // Debug logging in development
+      if (isDevelopment) {
+        log.debug(`CSRF validation: sessionId=${sessionId}, token=${token ? 'present' : 'missing'}, path=${req.path}`);
+      }
 
       if (!sessionId) {
         if (isDevelopment) {
@@ -149,7 +166,15 @@ class CSRFProtection {
           return next();
         }
         log.warn(`No session ID for CSRF validation on ${req.method} ${req.path}`);
-        return next(); // Allow request to proceed, session middleware will handle
+        
+        // In production, require session for all POST requests
+        if (req.xhr || req.headers.accept?.includes('application/json')) {
+          return res.status(403).json({
+            error: 'Session required',
+            code: 'SESSION_REQUIRED'
+          });
+        }
+        return res.redirect('/auth/login?err=SessionRequired');
       }
 
       if (!token) {

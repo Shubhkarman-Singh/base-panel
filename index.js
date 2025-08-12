@@ -7,7 +7,7 @@
  *             |_|                    
  *
  *  Impulse Panel 0.3.0 (Oz)
- *  (c) 2024 Impulse OSS and contributors
+ *  (c) 2025 Impulse OSS and contributors
  *
  */
 

@@ -204,7 +204,8 @@
     await fetch('/admin/nodes/radar/check',{
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '<%= csrfToken %>'
       }
     })
   }
@@ -220,7 +221,8 @@ async function deletenode(nodeId) {
     let response = await fetch('/nodes/delete', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '<%= csrfToken %>'
       },
       body: JSON.stringify({ nodeId })
     });
@@ -237,7 +239,8 @@ async function deletenode(nodeId) {
         response = await fetch(`/nodes/delete?deleteinstances=true`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': '<%= csrfToken %>'
           },
           body: JSON.stringify({ nodeId })
         });
@@ -454,7 +457,8 @@ function showPopup(command) {
     fetch('/nodes/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': '<%= csrfToken %>'
       },
       body: JSON.stringify(nodeData)
     })

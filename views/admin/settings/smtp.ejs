@@ -17,6 +17,7 @@
     
     <!-- SMTP Settings Form -->
     <form class="m-5" action="/admin/settings/saveSmtpSettings" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <label for="smtpServer" class="text-neutral-400 text-sm block"><%= req.translations.smtpServer %>:</label>
       <input type="text" id="smtpServer" name="smtpServer" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-full px-4 py-2 border-white/5 bg-white/5 placeholder-neutral-500" value="<%= smtpSettings.server || '' %>" placeholder="<%= req.translations.smtpServer %>" required>
       
@@ -40,6 +41,7 @@
 
     <!-- Test SMTP Settings Form -->
     <form class="m-5" action="/sendTestEmail" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <label for="recipientEmail" class="text-neutral-400 text-sm block mt-6"><%= req.translations.recipientEmail %>:</label>
       <input type="email" id="recipientEmail" name="recipientEmail" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-full px-4 py-2 border-white/5 bg-white/5" required>
       <button type="submit" class="mt-4 block rounded-xl bg-blue-500 text-white px-3 py-2 text-sm font-medium shadow-lg hover:bg-blue-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><%= req.translations.sendTestEmail %></button>

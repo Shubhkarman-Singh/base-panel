@@ -111,12 +111,14 @@
                     
                   <% } %>
                   <form action="/admin/instances/unsuspend/<%= instance.Id %>" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button type="submit" onclick="event.stopPropagation();" class="block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                       <%= req.translations.unsuspend %>
                     </button>
                   </form>
                 <% } else { %>
                   <form action="/admin/instances/suspend/<%= instance.Id %>" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                     <button type="submit" onclick="event.stopPropagation();" class="block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                       <%= req.translations.suspend %>
                     </button>

@@ -96,6 +96,7 @@
             </form>
             <div id="forceverifyform" class="mt-4 mb-4">
                <form action="/admin/settings/toggle/force-verify" method="POST">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <div class="flex items-center mb-2 mt-4">
                      <% if (settings.forceVerify === true) { %>
                      <span class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.forceVerifyEmail %> <span class="font-medium text-green-500"><%= req.translations.enabled %></span></span>
@@ -117,6 +118,7 @@
          </div>
          <div id="unitprefixform" class="mt-6">
             <form action="/admin/settings/change/unit-prefix" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="unitPrefix" class="block text-neutral-400 text-sm tracking-tight mb-2">Unit Prefix</label>
                <div class="custom-dropdown relative">
                   <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
@@ -136,6 +138,7 @@
          </div>
          <div id="twofaform" class="mt-6">
             <form action="/admin/settings/change/2fa-requirement" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="twoFARequirement" class="block text-neutral-400 text-sm tracking-tight mb-2">2FA Requirement</label>
                <div class="custom-dropdown relative">
                   <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
@@ -164,6 +167,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-5">
          <div id="avatarproviderform" class="mt-4">
             <form action="/admin/settings/change/avatar-provider" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="avatarProvider" class="block text-neutral-400 text-sm tracking-tight mb-2">Avatar Provider</label>
                <div class="custom-dropdown relative">
                   <button type="button" class="dropdown-toggle w-full rounded-xl bg-white/5 border border-white/5 text-white text-sm px-4 py-2 text-left flex items-center justify-between hover:bg-white/10 transition">
@@ -188,6 +192,7 @@
          </div>
          <div id="customavatarsform" class="mt-6 ml-8">
             <form action="/admin/settings/toggle/custom-avatars" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <div class="flex items-center mb-2">
                   <% if (settings.customAvatars === true) { %>
                   <span class="text-neutral-400 text-sm tracking-tight mb-2">Allow Custom Avatars <span class="font-medium text-green-500"><%= req.translations.enabled %></span></span>
@@ -430,6 +435,9 @@
       try {
          const response = await fetch('/admin/settings/change/logo', {
             method: 'POST',
+            headers: {
+               'X-CSRF-Token': '<%= csrfToken %>'
+            },
             body: formData
          });
          
@@ -452,6 +460,9 @@
             
             const response = await fetch('/admin/settings/change/logo', {
                method: 'POST',
+               headers: {
+                  'X-CSRF-Token': '<%= csrfToken %>'
+               },
                body: formData
             });
             

@@ -161,6 +161,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": "<%= csrfToken %>",
         }
       })
         .then((response) => {
@@ -186,7 +187,8 @@
       fetch('/apikeys/delete', {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': '<%= csrfToken %>'
         },
         body: JSON.stringify({ keyId })
       })

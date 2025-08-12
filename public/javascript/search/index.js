@@ -11,7 +11,7 @@ https://github.com/impulseOSS
 https://impulse.dev
 
 
-(c) 2024 ImpulseOSS and contributors.
+(c) 2025 ImpulseOSS and contributors.
 `);
 
 const searchModal = document.getElementById("searchModal");
@@ -43,8 +43,8 @@ function filterLinks(searchTerm) {
     // If subTerm exists, check if it matches too
     const subTermMatch = subTermFiltered
       ? textContent.includes(subTermFiltered) ||
-        (searchData && searchData.includes(subTermFiltered)) ||
-        (linkSubTerm && linkSubTerm.includes(subTermFiltered))
+      (searchData && searchData.includes(subTermFiltered)) ||
+      (linkSubTerm && linkSubTerm.includes(subTermFiltered))
       : true;
 
     return mainTermMatch && subTermMatch;

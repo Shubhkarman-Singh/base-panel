@@ -141,6 +141,58 @@ async function testInputValidation() {
 }
 
 /**
+ * Test CSRF protection
+ */
+async function testCSRFProtection() {
+  log.info("Testing CSRF protection...");
+  
+  try {
+    const { csrfProtection } = require("./csrfProtection.js");
+    
+    // Test 1: Token generation
+    const sessionId = "test-session-123";
+    const token1 = csrfProtection.createToken(sessionId);
+    const token2 = csrfProtection.createToken(sessionId);
+    
+    if (token1 && token2 && token1 !== token2) {
+      console.log("✓ CSRF token generation works");
+    } else {
+      throw new Error("CSRF token generation failed");
+    }
+    
+    // Test 2: Token validation
+    const isValid = csrfProtection.validateToken(sessionId, token1);
+    if (isValid) {
+      console.log("✓ CSRF token validation works");
+    } else {
+      throw new Error("CSRF token validation failed");
+    }
+    
+    // Test 3: Token reuse within window
+    const isValidReuse = csrfProtection.validateToken(sessionId, token1);
+    if (isValidReuse) {
+      console.log("✓ CSRF token reuse within window works");
+    } else {
+      throw new Error("CSRF token reuse failed");
+    }
+    
+    // Test 4: Invalid token rejection
+    const isInvalid = csrfProtection.validateToken(sessionId, "invalid-token");
+    if (!isInvalid) {
+      console.log("✓ CSRF invalid token rejection works");
+    } else {
+      throw new Error("CSRF should reject invalid tokens");
+    }
+    
+    log.info("CSRF protection tests passed");
+    return true;
+  } catch (error) {
+    log.error("CSRF protection test failed:", error);
+    return false;
+  }
+}
+
+/**
  * Run all security tests
  */
 async function runSecurityTests() {
@@ -150,7 +202,8 @@ async function runSecurityTests() {
     apiKeySecurity: await testApiKeySecurity(),
     adminAuthorization: await testAdminAuthorization(),
     securityLogging: await testSecurityLogging(),
-    inputValidation: await testInputValidation()
+    inputValidation: await testInputValidation(),
+    csrfProtection: await testCSRFProtection()
   };
   
   const passed = Object.values(results).filter(Boolean).length;
@@ -198,6 +251,16 @@ async function productionReadinessCheck() {
     checks.push({ name: "Security logging", passed: true });
   } catch (error) {
     checks.push({ name: "Security logging", passed: false, error: error.message });
+  }
+  
+  // Check 4: CSRF protection
+  try {
+    const { csrfProtection } = require("./csrfProtection.js");
+    const testToken = csrfProtection.createToken("test-session");
+    const isValid = csrfProtection.validateToken("test-session", testToken);
+    checks.push({ name: "CSRF protection", passed: isValid });
+  } catch (error) {
+    checks.push({ name: "CSRF protection", passed: false, error: error.message });
   }
   
   const passedChecks = checks.filter(check => check.passed).length;

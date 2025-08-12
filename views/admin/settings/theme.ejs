@@ -15,6 +15,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-5">
          <div id="changenameform" class="mt-4">
             <form action="/admin/settings/change/theme/color" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="name" class="text-neutral-400 text-sm tracking-tight mb-2">Button color</label>
 
                <select name="buttoncolor" id="button-color" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-fit items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-white/5 placeholder:text-white/20 text-white border border-black/10" style="width: 100px;">
@@ -27,6 +28,7 @@
          </div>
          <div id="changePanelThemeform" class="mt-6">
             <form action="/admin/settings/change/theme/color" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="name" class="text-neutral-400 text-sm tracking-tight mb-2">Panel Theme</label>
 
                <select name="paneltheme" id="paneltheme" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-fit items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-white/5 placeholder:text-white/20 text-white border border-black/10" style="width: 150px;">
@@ -42,7 +44,8 @@
          </div>
          <div id="togglefooterform" class="mt-6">
             <form action="/admin/settings/toggle/theme/footer" method="POST">
-               <div class="flex items-center mb-2">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+               <div class="flex items-center mb-2"></div>
                   <% if (settings.footer === true) { %>
                   <span class="text-neutral-400 text-sm tracking-tight mb-2">Impulse Credits: <span class="font-medium text-green-500"><%= req.translations.enabled %></span></span>
                   <% } else { %>
@@ -61,7 +64,8 @@
             </form>
             <div id="sidebar-direction" class="mt-4 mb-4">
             <form action="/admin/settings/change/theme/color" method="POST">
-               <div class="flex items-center mb-2">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+               <div class="flex items-center mb-2"></div>
                   <% if (theme['sidebar-direction'] === "right") { %>
                   <span class="text-neutral-400 text-sm tracking-tight mb-2">Sidebar position: <span class="font-medium text-purple-800">Right</span></span>
                   <% } else { %>
