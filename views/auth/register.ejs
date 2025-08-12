@@ -37,6 +37,7 @@
               <div class="mt-1">
                 <input placeholder="example" id="username" name="username" autocomplete="username" required class="appearance-none block w-full px-3 py-2 bg-white/10 border border-transparent rounded-xl placeholder-neutral-500 focus:outline-none focus:ring-neutral-500 focus:border-neutral-500 text-white transition sm:text-sm">
               </div>
+              <div id="username-errors" style="display: none;"></div>
             </div>
 
             <div>
@@ -44,6 +45,7 @@
               <div class="mt-1">
                 <input placeholder="you@example.com" id="email" name="email" type="email" autocomplete="email" required class="appearance-none block w-full px-3 py-2 bg-white/10 border border-transparent rounded-xl placeholder-neutral-500 focus:outline-none focus:ring-neutral-500 focus:border-neutral-500 text-white transition sm:text-sm">
               </div>
+              <div id="email-errors" style="display: none;"></div>
             </div>
 
             <div>
@@ -51,6 +53,8 @@
               <div class="mt-1">
                 <input placeholder="********" id="password" name="password" type="password" autocomplete="new-password" required class="appearance-none block w-full px-3 py-2 bg-white/10 border border-transparent rounded-xl placeholder-neutral-500 focus:outline-none focus:ring-neutral-500 focus:border-neutral-500 text-white transition sm:text-sm">
               </div>
+              <div id="password-errors" style="display: none;"></div>
+              <div id="password-strength"></div>
             </div>
 
             <% if (captchaSettings && captchaSettings.enabled && captchaSettings.siteKey) { %>
@@ -94,5 +98,7 @@
     <img class="absolute inset-0 h-full w-full object-cover" src="/assets/bg.jpg" alt="">
   </div>
 </div>
+
+<script src="/js/validation.js"></script>
 </body>
 </html>

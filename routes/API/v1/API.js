@@ -150,6 +150,17 @@ router.post("/api/v1/user/create-user", validateApiKey, async (req, res) => {
         .json({ error: "Username, email, and password are required" });
     }
 
+    // Validate input data
+    const { InputValidator } = require("../../../utils/inputValidation");
+    const validation = InputValidator.validateRegistrationForm({ username, email, password });
+    
+    if (!validation.isValid) {
+      return res.status(400).json({ 
+        error: "Validation failed", 
+        details: validation.errors 
+      });
+    }
+
     const users = (await db.get("users")) || [];
     const userExists = users.some(
       (user) => user.username === username || user.email === email

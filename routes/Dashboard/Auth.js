@@ -19,6 +19,7 @@ const {
 const speakeasy = require("speakeasy");
 const bcrypt = require("bcrypt");
 const { verifyCaptcha } = require("../../utils/captchaMiddleware");
+const { validateRegistration, validateLogin } = require("../../utils/inputValidation");
 const saltRounds = 10;
 
 const router = express.Router();
@@ -249,7 +250,7 @@ async function addUserToUsersTable(username, email, password, verified) {
     await db.set("users", users);
 
     if (!newUser.welcomeEmailSent) {
-      await sendWelcomeEmail(email, username, password);
+      await sendWelcomeEmail(email, username);
       newUser.welcomeEmailSent = true;
 
       if (!verified) {
@@ -342,6 +343,7 @@ router.get("/auth/login", async (req, res, next) => {
 
 router.post(
   "/auth/login",
+  validateLogin,
   verifyCaptcha,
   passport.authenticate("local", {
     failureRedirect: "/login?err=InvalidCredentials&state=failed",
@@ -532,7 +534,7 @@ async function initializeRoutes() {
             }
           });
 
-          router.post("/auth/register", verifyCaptcha, async (req, res) => {
+          router.post("/auth/register", validateRegistration, verifyCaptcha, async (req, res) => {
             const { username, email, password } = req.body;
 
             try {
@@ -606,6 +608,13 @@ router.get("/auth/reset-password", async (req, res) => {
 
 router.post("/auth/reset-password", verifyCaptcha, async (req, res) => {
   const { email } = req.body;
+
+  // Validate email format
+  const { InputValidator } = require("../../utils/inputValidation");
+  const emailValidation = InputValidator.validateEmail(email);
+  if (!emailValidation.isValid) {
+    return res.redirect("/auth/reset-password?err=InvalidEmail");
+  }
 
   try {
     const users = (await db.get("users")) || [];

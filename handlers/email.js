@@ -26,20 +26,37 @@ async function getSMTPSettings() {
   };
 }
 
-function getWelcomeEmailHTML(username, password, companyName) {
+function getWelcomeEmailHTML(username, companyName, loginUrl) {
   return `
     <html>
-      <body>
-        <h2>Welcome to ${companyName}!</h2>
-        <p>Dear ${username},</p>
-        <p>Thank you for creating an account with us.</p>
-        <p>Your account details:</p>
-        <ul>
-          <li><strong>Username:</strong> ${username}</li>
-          <li><strong>Password:</strong> ${password}</li>
-        </ul>
-        <p>We hope you enjoy using ${companyName}!</p>
-        <p>This is an automated message. Please do not reply.</p>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2c3e50;">Welcome to ${companyName}!</h2>
+          <p>Dear <strong>${username}</strong>,</p>
+          <p>Thank you for creating an account with us. Your account has been successfully created!</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Your account details:</strong></p>
+            <ul style="margin: 10px 0;">
+              <li><strong>Username:</strong> ${username}</li>
+              <li><strong>Login URL:</strong> <a href="${loginUrl}" style="color: #007bff;">${loginUrl}</a></li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <p><strong>Security Notice:</strong></p>
+            <p>For your security, we do not include passwords in emails. Please use the password you created during registration to log in.</p>
+            <p>If you forgot your password, you can reset it using the "Forgot Password" link on the login page.</p>
+          </div>
+          
+          <p>We hope you enjoy using ${companyName}!</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="font-size: 12px; color: #666;">
+            This is an automated message. Please do not reply to this email.<br>
+            If you did not create this account, please contact our support team immediately.
+          </p>
+        </div>
       </body>
     </html>
   `;
@@ -50,16 +67,19 @@ async function sendEmail(mailOptions) {
   return transporter.sendMail(mailOptions);
 }
 
-async function sendWelcomeEmail(email, username, password) {
-  const { name } = await getSMTPSettings();
+async function sendWelcomeEmail(email, username, loginUrl = null) {
+  const { smtpSettings, name } = await getSMTPSettings();
+  const baseUrl = loginUrl || require("../config.json").baseUri || "http://localhost:3000";
+  const fullLoginUrl = `${baseUrl}/auth`;
+  
   const mailOptions = {
-    from: `${name} <${name}@impulse.dev>`,
+    from: `${smtpSettings.fromName || name} <${smtpSettings.fromAddress || `${name}@impulse.dev`}>`,
     to: email,
-    subject: `Welcome to ${name}`,
-    html: getWelcomeEmailHTML(username, password, name),
+    subject: `Welcome to ${name} - Account Created Successfully`,
+    html: getWelcomeEmailHTML(username, name, fullLoginUrl),
   };
   await sendEmail(mailOptions);
-  console.log(`Welcome email sent to ${email}`);
+  console.log(`Secure welcome email sent to ${email}`);
 }
 
 async function sendVerificationEmail(email, token) {

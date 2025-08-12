@@ -15,6 +15,7 @@ const config = require("../../config.json");
 const saltRounds = config.saltRounds || 10;
 const log = new (require("cat-loggr"))();
 const { isAuthenticated } = require("../../handlers/auth.js");
+const { InputValidator } = require("../../utils/inputValidation");
 
 async function doesUserExist(username) {
   const users = await db.get("users");
@@ -63,6 +64,12 @@ router.post("/update-username", isAuthenticated, async (req, res) => {
     return res
       .status(400)
       .send("Current and new username parameters are required.");
+  }
+
+  // Validate new username
+  const usernameValidation = InputValidator.validateUsername(newUsername);
+  if (!usernameValidation.isValid) {
+    return res.status(400).send(`Username validation failed: ${usernameValidation.errors.join(', ')}`);
   }
 
   try {
@@ -207,6 +214,12 @@ router.post("/change-password", isAuthenticated, async (req, res) => {
     return res
       .status(400)
       .send("Current and new password parameters are required.");
+  }
+
+  // Validate new password
+  const passwordValidation = InputValidator.validatePassword(newPassword);
+  if (!passwordValidation.isValid) {
+    return res.status(400).send(`Password validation failed: ${passwordValidation.errors.join(', ')}`);
   }
 
   try {
