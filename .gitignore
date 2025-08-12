@@ -8,11 +8,6 @@ impulse.db
 sessions.db
 
 tmp/
-dist/
-build/
-public/
-src/
-index.html
 
 bs-config.json
 plugins/plugins.json
