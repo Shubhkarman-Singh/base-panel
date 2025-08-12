@@ -3,6 +3,7 @@ package-lock.json
 bun.lockb
 pnpm-lock.yaml
 pnpm-workspace.yaml
+bun.lock
 
 impulse.db
 sessions.db

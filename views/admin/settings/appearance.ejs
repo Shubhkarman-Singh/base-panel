@@ -15,6 +15,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-5">
          <div id="changenameform" class="mt-4">
             <form action="/admin/settings/change/name" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="name" class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.panelName %></label>
                <input id="name" name="name" type="text" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 w-fit items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-white/5 placeholder:text-white/20 text-white border border-black/10" value="<%= name %>" placeholder="<%= name %>" required>
                <button id="Save-Name" type="submit" class="mt-6 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.save %></button>
@@ -75,6 +76,7 @@
          </div>
          <div id="registerpage" class="mt-6">
             <form action="/admin/settings/toggle/register" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <div class="flex items-center mb-2">
                   <% if (settings.register === true) { %>
                   <span class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.registerPage %> <span class="font-medium text-green-500"><%= req.translations.enabled %></span></span>

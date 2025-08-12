@@ -33,6 +33,7 @@ const translationMiddleware = require("./handlers/translation");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const { createLoginLimiter, createPasswordResetLimiter } = require("./utils/advancedRateLimit.js");
+const { addCSRFToken, validateCSRF } = require("./utils/csrfProtection.js");
 const theme = require("./storage/theme.json");
 const analytics = require("./utils/analytics.js");
 const crypto = require("node:crypto");
@@ -75,6 +76,15 @@ app.use(
  * reads route files from the 'routes' directory, and applies WebSocket enhancements to each route.
  * Finally, it sets up static file serving and starts listening on a specified port.
  */
+// Configure Express proxy trust based on environment
+if (config.mode === 'production') {
+  // In production, only trust specific proxy IPs (configure as needed)
+  app.set('trust proxy', 1); // Trust first proxy only
+} else {
+  // In development, disable proxy trust to avoid rate limit warnings
+  app.set('trust proxy', false);
+}
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -82,6 +92,10 @@ app.use(analytics);
 app.use(translationMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Add CSRF protection
+app.use(addCSRFToken());
+app.use(validateCSRF());
 
 // Comprehensive rate limiting configuration
 const generalRateLimiter = rateLimit({
@@ -93,6 +107,8 @@ const generalRateLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip validation warnings in development
+  validate: config.mode !== 'development',
 });
 
 const authRateLimiter = rateLimit({
@@ -103,6 +119,7 @@ const authRateLimiter = rateLimit({
     retryAfter: "15 minutes"
   },
   skipSuccessfulRequests: true, // Don't count successful requests
+  validate: config.mode !== 'development',
 });
 
 const apiRateLimiter = rateLimit({
@@ -112,6 +129,7 @@ const apiRateLimiter = rateLimit({
     error: "API rate limit exceeded, please try again later.",
     retryAfter: "15 minutes"
   },
+  validate: config.mode !== 'development',
 });
 
 const strictRateLimiter = rateLimit({
@@ -121,6 +139,7 @@ const strictRateLimiter = rateLimit({
     error: "Rate limit exceeded for sensitive operation, please try again later.",
     retryAfter: "1 minute"
   },
+  validate: config.mode !== 'development',
 });
 
 // Apply general rate limiting to all requests
@@ -135,6 +154,7 @@ const passwordResetLimiter = rateLimit({
     retryAfter: "1 hour"
   },
   skipSuccessfulRequests: false, // Count all attempts
+  validate: config.mode !== 'development',
 });
 
 // Apply specific rate limiting to auth routes

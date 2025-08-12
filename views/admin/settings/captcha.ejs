@@ -31,6 +31,7 @@
          <!-- Enable/Disable Toggle -->
          <div class="mt-4">
             <form action="/admin/settings/toggle/captcha" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <div class="flex items-center mb-2">
                   <% if (captchaSettings.enabled === true) { %>
                   <span class="text-neutral-400 text-sm tracking-tight mb-2">CAPTCHA Protection <span class="font-medium text-green-500">Enabled</span></span>
@@ -54,6 +55,7 @@
          <% if (captchaSettings.enabled) { %>
          <div class="mt-4">
             <form action="/admin/settings/change/captcha" method="POST">
+               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                <label for="siteKey" class="text-neutral-400 text-sm tracking-tight mb-2">Site Key</label>
                <div class="relative">
                   <input type="password" id="siteKey" name="siteKey" 

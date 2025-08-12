@@ -20,80 +20,26 @@ const speakeasy = require("speakeasy");
 const bcrypt = require("bcrypt");
 const { verifyCaptcha } = require("../../utils/captchaMiddleware");
 const { validateRegistration, validateLogin } = require("../../utils/inputValidation");
+const { PasswordResetSecurity } = require("../../utils/passwordResetSecurity");
 const saltRounds = 10;
 
 const router = express.Router();
 
 /**
- * Middleware to ensure user is coming from auth flow
+ * Simplified middleware to ensure proper auth flow
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Next middleware function
  */
 const enforceAuthFlow = (req, res, next) => {
-  // Debug log
-  console.log('Auth Flow Check:', {
-    path: req.path,
-    session: req.session,
-    user: req.user ? 'Authenticated' : 'Not authenticated',
-    referer: req.headers.referer,
-    host: req.headers.host
-  });
-
   // If user is already authenticated, redirect to instances
   if (req.user) {
-    console.log('User already authenticated, redirecting to /instances');
     return res.redirect('/instances');
   }
 
-  // Check for valid auth flow token AND valid referer
-  const isFromValidSource = () => {
-    // For API/redirect scenarios where referer might not be set
-    if (!req.headers.referer) return false;
-    
-    try {
-      const refererUrl = new URL(req.headers.referer);
-      const appHost = req.headers.host;
-      
-      // Check if coming from the same host and from /auth path
-      return refererUrl.host === appHost && 
-             (refererUrl.pathname === '/auth' || 
-              refererUrl.pathname === '/auth/');
-    } catch (e) {
-      console.error('Error parsing referer:', e);
-      return false;
-    }
-  };
-
-  const hasValidAuthFlow = req.session && req.session.authFlow === 'started';
-  const isValidSource = isFromValidSource();
-
-  console.log('Auth validation:', {
-    hasValidAuthFlow,
-    isValidSource,
-    referer: req.headers.referer
-  });
-
-  // Only allow access if coming from a valid source AND has valid auth flow
-  if (hasValidAuthFlow && isValidSource) {
-    console.log('Valid auth flow and source, allowing access to', req.path);
-    // Reset session expiration
-    req.session.touch();
-    return next();
-  }
-
-  console.log('Invalid auth flow or source, redirecting to /auth');
-  // Clear any existing auth state
-  if (req.session) {
-    req.session.authFlow = null;
-  }
-  
-  // Redirect to auth page with a flag to show error if needed
-  const redirectUrl = req.path === '/login' || req.path === '/register' 
-    ? '/auth?error=invalid_source'
-    : '/auth';
-    
-  return res.redirect(redirectUrl);
+  // Always allow access to login/register pages
+  // The main /auth route will handle starting the auth flow
+  return next();
 };
 
 // Main auth page - starts the auth flow
@@ -101,7 +47,7 @@ router.get('/auth', async (req, res) => {
   if (req.user) {
     return res.redirect('/instances');
   }
-  
+
   try {
     // Start auth flow with proper session handling
     req.session.regenerate((err) => {
@@ -109,23 +55,23 @@ router.get('/auth', async (req, res) => {
         console.error('Session regeneration error:', err);
         return res.status(500).send('Internal Server Error');
       }
-      
+
       // Set session variables
       req.session.authFlow = 'started';
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
-      
+
       // Save the session before sending the response
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
           return res.status(500).send('Internal Server Error');
         }
-        
+
         // Now render the page with the session properly set
         db.get("settings").then(settings => {
           settings = settings || {};
-          res.render('auth/auth', { 
-            settings, 
+          res.render('auth/auth', {
+            settings,
             req,
             registrationEnabled: settings.register === true,
             _csrf: req.csrfToken ? req.csrfToken() : ''
@@ -618,18 +564,19 @@ router.post("/auth/reset-password", verifyCaptcha, async (req, res) => {
 
   try {
     const users = (await db.get("users")) || [];
-    const user = users.find((u) => u.email === email);
+    const user = users.find((u) => u.email === emailValidation.sanitized);
 
     if (!user) {
-      res.redirect("/auth/reset-password?err=EmailNotFound");
+      // Don't reveal if email exists or not for security
+      res.redirect("/auth/reset-password?msg=PasswordSent");
       return;
     }
 
-    const resetToken = generateRandomCode(30);
-    user.resetToken = resetToken;
-    await db.set("users", users);
+    // Generate secure token with expiration
+    const tokenData = PasswordResetSecurity.generateResetToken();
+    const resetToken = await PasswordResetSecurity.storeResetToken(emailValidation.sanitized, tokenData);
 
-    await sendPasswordResetEmail(email, resetToken);
+    await sendPasswordResetEmail(emailValidation.sanitized, resetToken);
 
     res.redirect("/auth/reset-password?msg=PasswordSent");
   } catch (error) {
@@ -642,12 +589,16 @@ router.get("/auth/reset/:token", async (req, res) => {
   const { token } = req.params;
 
   try {
-    const users = (await db.get("users")) || [];
-    const user = users.find((u) => u.resetToken === token);
+    // Validate token using secure system
+    const validation = await PasswordResetSecurity.validateResetToken(token);
 
-    if (!user) {
-      res.send("Invalid or expired token.");
-      return;
+    if (!validation.valid) {
+      log.warn(`Invalid password reset attempt with token: ${token}, error: ${validation.error}`);
+      return res.render("auth/password-reset-error", {
+        req,
+        error: validation.error,
+        settings: (await db.get("settings")) || {}
+      });
     }
 
     const settings = (await db.get("settings")) || {};
@@ -655,6 +606,7 @@ router.get("/auth/reset/:token", async (req, res) => {
       req,
       token: token,
       settings,
+      user: validation.user
     });
   } catch (error) {
     log.error("Error rendering password reset form:", error);
@@ -667,23 +619,40 @@ router.post("/auth/reset/:token", async (req, res) => {
   const { password } = req.body;
 
   try {
-    const users = (await db.get("users")) || [];
-    if (!users) {
-      throw new Error("No users found");
+    // Validate password complexity
+    const { InputValidator } = require("../../utils/inputValidation");
+    const passwordValidation = InputValidator.validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.redirect(`/auth/reset/${token}?err=${encodeURIComponent(passwordValidation.errors.join('; '))}`);
     }
 
-    const user = users.find((user) => user.resetToken === token);
+    // Validate token using secure system
+    const validation = await PasswordResetSecurity.validateResetToken(token);
 
-    if (!user) {
-      res.redirect("/login?msg=PasswordReset&state=failed");
-      return;
+    if (!validation.valid) {
+      log.warn(`Invalid password reset attempt with token: ${token}, error: ${validation.error}`);
+      return res.redirect("/login?msg=PasswordReset&state=failed");
+    }
+
+    // Mark token as used immediately to prevent reuse
+    await PasswordResetSecurity.markTokenAsUsed(token);
+
+    // Update password
+    const users = (await db.get("users")) || [];
+    const userIndex = users.findIndex(u => u.email === validation.user.email);
+
+    if (userIndex === -1) {
+      throw new Error("User not found during password update");
     }
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    user.password = hashedPassword;
-    delete user.resetToken;
+    users[userIndex].password = hashedPassword;
     await db.set("users", users);
 
+    // Clear the reset token completely
+    await PasswordResetSecurity.clearResetToken(token);
+
+    log.info(`Password successfully reset for user: ${validation.user.email}`);
     res.redirect("/login?msg=PasswordReset&state=success");
   } catch (error) {
     log.error("Error handling password reset:", error);
