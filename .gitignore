@@ -8,7 +8,11 @@ impulse.db
 sessions.db
 
 tmp/
-public/assets/logo.png
+dist/
+build/
+public/
+src/
+index.html
 
 bs-config.json
 plugins/plugins.json
