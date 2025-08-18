@@ -341,11 +341,6 @@ Codebase: Impulse Panel v0.0.1
 🔵 CONFIGURATION & DEPLOYMENT ISSUES
 ====================================
 
-14. DEVELOPMENT MODE IN PRODUCTION (MEDIUM)
-    Location: config.json line 5
-    Issue: Mode set to "development"
-    Risk: Debug information exposure, performance issues
-
 15. INSECURE EMAIL CONFIGURATION (MEDIUM)
     Location: handlers/email.js line 21
     Issue: tls: { rejectUnauthorized: false }

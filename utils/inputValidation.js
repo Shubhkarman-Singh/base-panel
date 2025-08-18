@@ -1,18 +1,24 @@
-const log = new (require("cat-loggr"))();
-
 /**
- * Comprehensive input validation middleware
+ * Input Validation Utility
+ * Provides comprehensive validation for user inputs
  */
+
 class InputValidator {
-  
   /**
-   * Validate username
+   * Validates username format and security requirements
+   * @param {string} username - Username to validate
+   * @returns {Object} - Validation result with isValid boolean and errors array
    */
   static validateUsername(username) {
     const errors = [];
     
-    if (!username || typeof username !== 'string') {
+    if (!username) {
       errors.push('Username is required');
+      return { isValid: false, errors };
+    }
+    
+    if (typeof username !== 'string') {
+      errors.push('Username must be a string');
       return { isValid: false, errors };
     }
     
@@ -20,11 +26,12 @@ class InputValidator {
     if (username.length < 3) {
       errors.push('Username must be at least 3 characters long');
     }
+    
     if (username.length > 30) {
       errors.push('Username must be no more than 30 characters long');
     }
     
-    // Character validation - alphanumeric, underscore, hyphen only
+    // Character validation
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       errors.push('Username can only contain letters, numbers, underscores, and hyphens');
     }
@@ -35,26 +42,99 @@ class InputValidator {
     }
     
     // Reserved usernames
-    const reserved = ['admin', 'root', 'administrator', 'system', 'api', 'www', 'mail', 'ftp', 'test', 'guest', 'null', 'undefined'];
+    const reserved = [
+      'admin', 'administrator', 'root', 'system', 'api', 'www', 'mail', 'ftp',
+      'test', 'guest', 'user', 'support', 'help', 'info', 'null', 'undefined'
+    ];
+    
     if (reserved.includes(username.toLowerCase())) {
       errors.push('This username is reserved and cannot be used');
     }
     
-    return {
-      isValid: errors.length === 0,
-      errors,
-      sanitized: username.trim().toLowerCase()
-    };
+    return { isValid: errors.length === 0, errors };
   }
-  
+
   /**
-   * Validate email
+   * Validates password strength and security requirements
+   * @param {string} password - Password to validate
+   * @returns {Object} - Validation result with isValid boolean and errors array
+   */
+  static validatePassword(password) {
+    const errors = [];
+    
+    if (!password) {
+      errors.push('Password is required');
+      return { isValid: false, errors };
+    }
+    
+    if (typeof password !== 'string') {
+      errors.push('Password must be a string');
+      return { isValid: false, errors };
+    }
+    
+    // Length validation
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    
+    if (password.length > 128) {
+      errors.push('Password must be no more than 128 characters long');
+    }
+    
+    // Complexity requirements
+    const hasLowercase = /[a-z]/.test(password);
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    
+    if (!hasLowercase) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (!hasUppercase) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (!hasNumbers) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    if (!hasSpecialChar) {
+      errors.push('Password must contain at least one special character');
+    }
+    
+    // Common password patterns
+    const commonPatterns = [
+      /^(.)\1+$/, // All same character
+      /^(012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i,
+      /^(qwerty|asdfgh|zxcvbn|password|admin|login)/i
+    ];
+    
+    for (const pattern of commonPatterns) {
+      if (pattern.test(password)) {
+        errors.push('Password contains common patterns and is not secure');
+        break;
+      }
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validates email format
+   * @param {string} email - Email to validate
+   * @returns {Object} - Validation result with isValid boolean and errors array
    */
   static validateEmail(email) {
     const errors = [];
     
-    if (!email || typeof email !== 'string') {
+    if (!email) {
       errors.push('Email is required');
+      return { isValid: false, errors };
+    }
+    
+    if (typeof email !== 'string') {
+      errors.push('Email must be a string');
       return { isValid: false, errors };
     }
     
@@ -63,260 +143,198 @@ class InputValidator {
       errors.push('Email address is too long');
     }
     
-    // Format validation using built-in regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Basic format validation
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    
     if (!emailRegex.test(email)) {
-      errors.push('Please enter a valid email address');
+      errors.push('Invalid email format');
     }
     
-    // Domain validation (basic)
-    const domain = email.split('@')[1];
-    if (domain && domain.length > 253) {
-      errors.push('Email domain is too long');
+    // Check for dangerous characters
+    if (/[<>'"&]/.test(email)) {
+      errors.push('Email contains invalid characters');
     }
     
-    // Disposable email check (basic list)
-    const disposableDomains = [
-      '10minutemail.com', 'tempmail.org', 'guerrillamail.com', 
-      'mailinator.com', 'yopmail.com', 'temp-mail.org'
-    ];
-    if (domain && disposableDomains.includes(domain.toLowerCase())) {
-      errors.push('Disposable email addresses are not allowed');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors,
-      sanitized: email.trim().toLowerCase()
-    };
+    return { isValid: errors.length === 0, errors };
   }
-  
+
   /**
-   * Validate password
+   * Validates URL format
+   * @param {string} url - URL to validate
+   * @returns {Object} - Validation result with isValid boolean and errors array
    */
-  static validatePassword(password) {
+  static validateURL(url) {
     const errors = [];
     
-    if (!password || typeof password !== 'string') {
-      errors.push('Password is required');
+    if (!url) {
+      errors.push('URL is required');
       return { isValid: false, errors };
     }
     
-    // Length validation
-    if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
-    }
-    if (password.length > 128) {
-      errors.push('Password must be no more than 128 characters long');
+    if (typeof url !== 'string') {
+      errors.push('URL must be a string');
+      return { isValid: false, errors };
     }
     
-    // Complexity validation
-    const hasLowercase = /[a-z]/.test(password);
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasNumbers = /\d/.test(password);
-    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-    
-    let complexityScore = 0;
-    if (hasLowercase) complexityScore++;
-    if (hasUppercase) complexityScore++;
-    if (hasNumbers) complexityScore++;
-    if (hasSpecialChar) complexityScore++;
-    
-    if (complexityScore < 3) {
-      errors.push('Password must contain at least 3 of the following: lowercase letters, uppercase letters, numbers, special characters');
+    try {
+      const urlObj = new URL(url);
+      
+      // Only allow HTTP and HTTPS
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        errors.push('URL must use HTTP or HTTPS protocol');
+      }
+      
+      // Check for dangerous characters in hostname
+      if (/[<>'"&]/.test(urlObj.hostname)) {
+        errors.push('URL contains invalid characters');
+      }
+      
+      // Prevent localhost and private IPs in production
+      if (process.env.NODE_ENV === 'production') {
+        const hostname = urlObj.hostname.toLowerCase();
+        if (hostname === 'localhost' || 
+            hostname === '127.0.0.1' || 
+            hostname.startsWith('192.168.') ||
+            hostname.startsWith('10.') ||
+            hostname.startsWith('172.')) {
+          errors.push('Private IP addresses and localhost are not allowed');
+        }
+      }
+      
+    } catch (error) {
+      errors.push('Invalid URL format');
     }
     
-    // Common password check
-    const commonPasswords = [
-      'password', '123456', '123456789', 'qwerty', 'abc123', 
-      'password123', 'admin', 'letmein', 'welcome', 'monkey'
-    ];
-    if (commonPasswords.includes(password.toLowerCase())) {
-      errors.push('This password is too common. Please choose a more secure password');
-    }
-    
-    // Sequential characters check
-    if (/123456|abcdef|qwerty/i.test(password)) {
-      errors.push('Password should not contain sequential characters');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors,
-      strength: this.getPasswordStrength(password)
-    };
+    return { isValid: errors.length === 0, errors };
   }
-  
+
   /**
-   * Get password strength score
+   * Sanitizes string input to prevent XSS
+   * @param {string} input - Input to sanitize
+   * @returns {string} - Sanitized input
    */
-  static getPasswordStrength(password) {
-    let score = 0;
-    
-    // Length bonus
-    if (password.length >= 8) score += 1;
-    if (password.length >= 12) score += 1;
-    if (password.length >= 16) score += 1;
-    
-    // Character variety
-    if (/[a-z]/.test(password)) score += 1;
-    if (/[A-Z]/.test(password)) score += 1;
-    if (/\d/.test(password)) score += 1;
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score += 1;
-    
-    // Bonus for mixed case and numbers
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password)) score += 1;
-    
-    if (score <= 2) return 'weak';
-    if (score <= 4) return 'medium';
-    if (score <= 6) return 'strong';
-    return 'very-strong';
-  }
-  
-  /**
-   * Sanitize general text input
-   */
-  static sanitizeText(text, maxLength = 255) {
-    if (!text || typeof text !== 'string') return '';
-    
-    // Remove HTML tags and trim
-    let sanitized = text.replace(/<[^>]*>/g, '').trim();
-    
-    // Limit length
-    if (sanitized.length > maxLength) {
-      sanitized = sanitized.substring(0, maxLength);
+  static sanitizeString(input) {
+    if (typeof input !== 'string') {
+      return '';
     }
     
-    // Remove null bytes and control characters
-    sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
-    
-    return sanitized;
+    return input
+      .replace(/[<>'"&]/g, (match) => {
+        const entities = {
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#x27;',
+          '&': '&amp;'
+        };
+        return entities[match];
+      })
+      .trim();
   }
-  
+
   /**
-   * Validate and sanitize form data
+   * Validates file upload
+   * @param {Object} file - Multer file object
+   * @param {Array} allowedTypes - Array of allowed MIME types
+   * @param {number} maxSize - Maximum file size in bytes
+   * @returns {Object} - Validation result
    */
-  static validateRegistrationForm(data) {
-    const { username, email, password } = data;
+  static validateFileUpload(file, allowedTypes = [], maxSize = 5 * 1024 * 1024) {
     const errors = [];
-    const sanitized = {};
     
-    // Validate username
-    const usernameValidation = this.validateUsername(username);
-    if (!usernameValidation.isValid) {
-      errors.push(...usernameValidation.errors);
-    } else {
-      sanitized.username = usernameValidation.sanitized;
+    if (!file) {
+      errors.push('No file provided');
+      return { isValid: false, errors };
     }
     
-    // Validate email
-    const emailValidation = this.validateEmail(email);
-    if (!emailValidation.isValid) {
-      errors.push(...emailValidation.errors);
-    } else {
-      sanitized.email = emailValidation.sanitized;
+    // Check file size
+    if (file.size > maxSize) {
+      errors.push(`File size exceeds maximum allowed size of ${Math.round(maxSize / 1024 / 1024)}MB`);
     }
     
-    // Validate password
-    const passwordValidation = this.validatePassword(password);
-    if (!passwordValidation.isValid) {
-      errors.push(...passwordValidation.errors);
-    } else {
-      sanitized.password = password; // Don't modify password
-      sanitized.passwordStrength = passwordValidation.strength;
+    // Check MIME type
+    if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
+      errors.push(`File type ${file.mimetype} is not allowed. Allowed types: ${allowedTypes.join(', ')}`);
     }
     
-    return {
-      isValid: errors.length === 0,
-      errors,
-      sanitized
-    };
-  }
-  
-  /**
-   * Validate login form
-   */
-  static validateLoginForm(data) {
-    const { username, password } = data;
-    const errors = [];
-    const sanitized = {};
+    // Check for dangerous file extensions
+    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js', '.jar', '.php', '.asp', '.jsp'];
+    const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
     
-    if (!username || typeof username !== 'string' || username.trim().length === 0) {
-      errors.push('Username or email is required');
-    } else {
-      // Could be username or email
-      const trimmed = username.trim();
-      if (trimmed.includes('@')) {
-        const emailValidation = this.validateEmail(trimmed);
-        if (!emailValidation.isValid) {
-          errors.push('Please enter a valid email address');
-        } else {
-          sanitized.username = emailValidation.sanitized;
-        }
-      } else {
-        sanitized.username = trimmed.toLowerCase();
-      }
+    if (dangerousExtensions.includes(fileExtension)) {
+      errors.push(`File extension ${fileExtension} is not allowed for security reasons`);
     }
     
-    if (!password || typeof password !== 'string' || password.length === 0) {
-      errors.push('Password is required');
-    } else {
-      sanitized.password = password;
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors,
-      sanitized
-    };
-  }
-  
-  /**
-   * Express middleware for form validation
-   */
-  static createValidationMiddleware(validationType) {
-    return (req, res, next) => {
-      let validation;
-      
-      switch (validationType) {
-        case 'registration':
-          validation = this.validateRegistrationForm(req.body);
-          break;
-        case 'login':
-          validation = this.validateLoginForm(req.body);
-          break;
-        default:
-          return next();
-      }
-      
-      if (!validation.isValid) {
-        log.warn(`Validation failed for ${validationType}:`, validation.errors);
-        
-        // For registration, redirect with errors
-        if (validationType === 'registration') {
-          const errorMsg = validation.errors.join('; ');
-          return res.redirect(`/register?err=${encodeURIComponent(errorMsg)}`);
-        }
-        
-        // For login, redirect with generic error
-        if (validationType === 'login') {
-          return res.redirect('/login?err=InvalidInput');
-        }
-        
-        return res.status(400).json({ errors: validation.errors });
-      }
-      
-      // Replace req.body with sanitized data
-      req.body = { ...req.body, ...validation.sanitized };
-      req.validationResult = validation;
-      
-      next();
-    };
+    return { isValid: errors.length === 0, errors };
   }
 }
 
-module.exports = {
+/**
+ * Middleware to validate login input
+ */
+function validateLogin(req, res, next) {
+  const { username, password } = req.body;
+  const errors = [];
+
+  // Validate username/email
+  if (!username) {
+    errors.push('Username or email is required');
+  } else if (typeof username !== 'string') {
+    errors.push('Username must be a string');
+  } else if (username.length > 100) {
+    errors.push('Username is too long');
+  }
+
+  // Validate password
+  if (!password) {
+    errors.push('Password is required');
+  } else if (typeof password !== 'string') {
+    errors.push('Password must be a string');
+  } else if (password.length > 200) {
+    errors.push('Password is too long');
+  }
+
+  if (errors.length > 0) {
+    return res.redirect('/login?err=' + encodeURIComponent(errors.join('; ')));
+  }
+
+  next();
+}
+
+/**
+ * Middleware to validate registration input
+ */
+function validateRegistration(req, res, next) {
+  const { username, email, password } = req.body;
+  const errors = [];
+
+  // Validate username
+  const usernameValidation = InputValidator.validateUsername(username);
+  if (!usernameValidation.isValid) {
+    errors.push(...usernameValidation.errors);
+  }
+
+  // Validate email
+  const emailValidation = InputValidator.validateEmail(email);
+  if (!emailValidation.isValid) {
+    errors.push(...emailValidation.errors);
+  }
+
+  // Validate password
+  const passwordValidation = InputValidator.validatePassword(password);
+  if (!passwordValidation.isValid) {
+    errors.push(...passwordValidation.errors);
+  }
+
+  if (errors.length > 0) {
+    return res.redirect('/register?err=' + encodeURIComponent(errors.join('; ')));
+  }
+
+  next();
+}
+
+module.exports = { 
   InputValidator,
-  validateRegistration: InputValidator.createValidationMiddleware('registration'),
-  validateLogin: InputValidator.createValidationMiddleware('login')
+  validateLogin,
+  validateRegistration
 };

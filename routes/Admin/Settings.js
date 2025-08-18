@@ -9,25 +9,39 @@ const { sendTestEmail } = require("../../handlers/email.js");
 const { isAdmin } = require("../../utils/isAdmin.js");
 const log = new (require("cat-loggr"))();
 
-// Configure multer for file upload
+// Configure multer for secure file upload
 const upload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadPath = path.join(__dirname, "..", "..", "public", "assets");
+      const uploadPath = path.join(__dirname, "..", "..", "storage", "uploads");
       fs.mkdirSync(uploadPath, { recursive: true });
       cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-      cb(null, "logo.png");
+      const sanitizedName = file.fieldname === 'favicon' ? 'favicon.ico' : 'logo.png';
+      cb(null, sanitizedName);
     },
   }),
   fileFilter: (req, file, cb) => {
-    cb(
-      null,
-      file.mimetype.startsWith("image/") ||
-        new Error("Not an image! Please upload an image file.")
-    );
+    // Strict file type validation
+    const allowedMimeTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'
+    ];
+    
+    if (file.fieldname === 'favicon') {
+      allowedMimeTypes.push('image/x-icon', 'image/vnd.microsoft.icon');
+    }
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type. Allowed types: ${allowedMimeTypes.join(', ')}`), false);
+    }
   },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1 // Only one file at a time
+  }
 });
 
 async function fetchCommonSettings(req) {
@@ -198,10 +212,21 @@ router.post(
       const settings = (await db.get("settings")) || {};
 
       if (logoType === "upload" && req.file) {
-        // Handle file upload
+        // Validate file size and type again
+        if (req.file.size > 5 * 1024 * 1024) {
+          return res.status(400).send("File too large. Maximum size is 5MB.");
+        }
+        
+        // Copy from secure storage to public directory
+        const sourcePath = req.file.path;
+        const destPath = path.join(__dirname, "..", "..", "public", "assets", "logo.png");
+        
+        fs.copyFileSync(sourcePath, destPath);
+        fs.unlinkSync(sourcePath); // Remove from secure storage
+        
         settings.logo = true;
         settings.logoType = "upload";
-        settings.logoLink = null; // Clear any existing link
+        settings.logoLink = null;
         await db.set("settings", settings);
         logAudit(req.user.userId, req.user.username, "logo:upload", req.ip);
         res.redirect("/admin/settings");
@@ -260,8 +285,16 @@ router.post("/admin/settings/toggle/register", isAdmin, async (req, res) => {
 router.post("/admin/settings/change/favicon", isAdmin, upload.single("favicon"), async (req, res) => {
   try {
     if (req.file) {
+      // Validate file size
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).send("File too large. Maximum size is 5MB.");
+      }
+      
+      const sourcePath = req.file.path;
       const faviconPath = path.join(__dirname, "..", "..", "public", "assets", "favicon.ico");
-      fs.renameSync(req.file.path, faviconPath);
+      
+      fs.copyFileSync(sourcePath, faviconPath);
+      fs.unlinkSync(sourcePath); // Remove from secure storage
       
       const settings = (await db.get("settings")) || {};
       settings.favicon = true;

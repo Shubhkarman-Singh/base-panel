@@ -51,6 +51,7 @@ const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const { createLoginLimiter, createPasswordResetLimiter } = require("./utils/advancedRateLimit.js");
 const { addCSRFToken, validateCSRF } = require("./utils/csrfProtection.js");
+const helmet = require("helmet");
 const theme = require("./storage/theme.json");
 const analytics = require("./utils/analytics.js");
 const crypto = require("node:crypto");
@@ -101,6 +102,32 @@ if (configManager.get("mode") === 'production') {
   // In development, disable proxy trust to avoid rate limit warnings
   app.set('trust proxy', false);
 }
+
+// Security headers middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://www.google.com", "https://www.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      frameSrc: ["'self'", "https://www.google.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: configManager.get("mode") === 'production' ? [] : null
+    }
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  frameguard: { action: 'deny' },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
+}));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -274,6 +301,7 @@ const { formatBytes, formatDiskUsage, formatMemory, formatSpeed } = require("./u
 const { enforce2FA } = require("./utils/twoFAEnforcement");
 const { getLogoProperties } = require("./handlers/logoHelper");
 const { addCaptchaToLocals } = require("./utils/captchaMiddleware");
+const ErrorHandler = require("./utils/errorHandler");
 
 app.use(async (req, res, next) => {
   try {
@@ -400,9 +428,8 @@ app.listen(configManager.get("port"), () =>
   log.info(`Impulse is listening on port ${configManager.get("port")}`)
 );
 
-app.get("*", async function (req, res) {
-  res.render("errors/404", {
-    req,
-    name: (await db.get("name")) || "Impulse",
-  });
-});
+// Error handling middleware
+app.use(ErrorHandler.middleware);
+
+// 404 handler
+app.get("*", ErrorHandler.notFound);

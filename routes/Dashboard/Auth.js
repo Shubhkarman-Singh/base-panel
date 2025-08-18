@@ -252,40 +252,7 @@ passport.deserializeUser(async (username, done) => {
   }
 });
 
-/**
- * GET /auth/login
- * Authenticates a user using Passport's local strategy. If authentication is successful, the user
- * is redirected to the instances page, otherwise, they are sent back to the login page with an error.
- *
- * @returns {Response} Redirects based on the success or failure of the authentication attempt.
- */
-router.get("/auth/login", async (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
-    if (err) {
-      return next(err);
-    }
-    if (!user) {
-      if (info.userNotVerified) {
-        return res.redirect("/login?err=UserNotVerified");
-      }
-      return res.redirect("/login?err=InvalidCredentials&state=failed");
-    }
-    req.logIn(user, async (err) => {
-      if (err) return next(err);
 
-      const users = await db.get("users");
-      const user2 = users.find((u) => u.username === user.username);
-
-      if (user2 && user2.twoFAEnabled) {
-        req.session.tempUser = user;
-        req.user = null;
-        return res.redirect("/2fa");
-      } else {
-        return res.redirect("/instances");
-      }
-    });
-  })(req, res, next);
-});
 
 router.post(
   "/auth/login",
@@ -364,13 +331,7 @@ router.post("/2fa", async (req, res) => {
   }
 });
 
-router.get(
-  "/auth/login",
-  passport.authenticate("local", {
-    successRedirect: "/instances",
-    failureRedirect: "/login?err=InvalidCredentials&state=failed",
-  })
-);
+
 
 router.get("/verify/:token", async (req, res) => {
   const { token } = req.params;
@@ -529,15 +490,7 @@ async function initializeRoutes() {
 
 initializeRoutes();
 
-router.get("/auth", async (req, res) => {
-  const settings = (await db.get("settings")) || {};
-  res.render("auth", {
-    settings,
-    req,
-    title: "Authentication",
-    layout: "layouts/auth"
-  });
-});
+
 
 router.get("/auth/reset-password", async (req, res) => {
   const settings = (await db.get("settings")) || {};

@@ -19,7 +19,11 @@ async function getSMTPSettings() {
         user: smtpSettings.username,
         pass: smtpSettings.password,
       },
-      tls: { rejectUnauthorized: false },
+      tls: { 
+        rejectUnauthorized: true,
+        minVersion: 'TLSv1.2',
+        ciphers: 'ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS'
+      },
     }),
     name,
     smtpSettings,

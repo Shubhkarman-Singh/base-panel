@@ -1,261 +1,284 @@
 /**
- * @fileoverview Data sanitization utility to prevent sensitive data exposure
- * Provides methods to safely sanitize user data before sending to clients
+ * Data Sanitizer Utility
+ * Provides secure data filtering and sanitization for API responses and templates
  */
 
 class DataSanitizer {
-  constructor() {
-    // Define sensitive fields that should never be exposed
-    this.sensitiveFields = [
-      'password',
-      'twoFASecret',
-      'resetToken',
-      'resetTokenExpiry',
-      'sessionId',
-      'session',
-      'cookie',
-      'secret',
-      'privateKey',
-      'apiKey',
-      'token',
-      'auth',
-      'credential'
-    ];
-
-    // Define fields that should be masked rather than removed
-    this.maskableFields = [
-      'email'
-    ];
-  }
-
   /**
-   * Sanitize user object for public API responses
-   * @param {Object} user - User object from database
-   * @param {Object} options - Sanitization options
-   * @returns {Object} Sanitized user object
+   * Removes sensitive fields from settings object
+   * @param {Object} settings - Settings object
+   * @returns {Object} - Sanitized settings
    */
-  sanitizeUser(user, options = {}) {
-    if (!user || typeof user !== 'object') {
-      return null;
+  static removeSensitiveFields(settings) {
+    if (!settings || typeof settings !== 'object') {
+      return {};
     }
 
-    const {
-      includeEmail = false,
-      includeAdminStatus = true,
-      includePersonalData = true
-    } = options;
-
-    const sanitized = {
-      userId: user.userId,
-      username: user.username
-    };
-
-    // Include admin status if requested
-    if (includeAdminStatus) {
-      sanitized.admin = user.admin || false;
-    }
-
-    // Include personal data if requested
-    if (includePersonalData) {
-      sanitized.twoFAEnabled = user.twoFAEnabled || false;
-      sanitized.createdAt = user.createdAt;
-      sanitized.lastLogin = user.lastLogin;
-
-      // Avatar data
-      if (user.customAvatarUrl && typeof user.customAvatarUrl === 'string') {
-        sanitized.customAvatarUrl = user.customAvatarUrl;
-      }
-      if (user.boringAvatarStyle && typeof user.boringAvatarStyle === 'string') {
-        sanitized.boringAvatarStyle = user.boringAvatarStyle;
-      }
-      if (user.boringAvatarColors && Array.isArray(user.boringAvatarColors)) {
-        sanitized.boringAvatarColors = user.boringAvatarColors;
-      }
-    }
-
-    // Include email if specifically requested and user has permission
-    if (includeEmail && user.email) {
-      sanitized.email = this.maskEmail(user.email);
-    }
-
+    const sanitized = { ...settings };
+    
+    // Remove sensitive configuration
+    delete sanitized.sessionSecret;
+    delete sanitized.jwtSecret;
+    delete sanitized.encryptionKey;
+    delete sanitized.smtpPassword;
+    delete sanitized.databaseUrl;
+    delete sanitized.apiKeys;
+    delete sanitized.webhookSecrets;
+    
     return sanitized;
   }
 
   /**
-   * Sanitize array of users
+   * Sanitizes user data for public consumption
    * @param {Array} users - Array of user objects
    * @param {Object} options - Sanitization options
-   * @returns {Array} Array of sanitized user objects
+   * @returns {Array} - Sanitized user array
    */
-  sanitizeUsers(users, options = {}) {
+  static sanitizeUsers(users, options = {}) {
     if (!Array.isArray(users)) {
       return [];
     }
 
-    return users
-      .map(user => this.sanitizeUser(user, options))
-      .filter(user => user !== null);
-  }
+    const {
+      includeEmail = false,
+      includeAdminStatus = false,
+      includePersonalData = false
+    } = options;
 
-  /**
-   * Mask email address for privacy
-   * @param {string} email - Email address to mask
-   * @returns {string} Masked email address
-   */
-  maskEmail(email) {
-    if (!email || typeof email !== 'string') {
-      return '';
-    }
+    return users.map(user => {
+      const sanitized = {
+        userId: user.userId,
+        username: user.username,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin
+      };
 
-    const [localPart, domain] = email.split('@');
-    if (!localPart || !domain) {
-      return '[INVALID EMAIL]';
-    }
-
-    // Mask local part: show first 2 and last 1 characters
-    let maskedLocal;
-    if (localPart.length <= 3) {
-      maskedLocal = localPart.charAt(0) + '*'.repeat(localPart.length - 1);
-    } else {
-      maskedLocal = localPart.substring(0, 2) + '*'.repeat(localPart.length - 3) + localPart.slice(-1);
-    }
-
-    return `${maskedLocal}@${domain}`;
-  }
-
-  /**
-   * Remove sensitive fields from any object
-   * @param {any} obj - Object to sanitize
-   * @param {number} depth - Current recursion depth
-   * @returns {any} Sanitized object
-   */
-  removeSensitiveFields(obj, depth = 0) {
-    // Prevent infinite recursion
-    if (depth > 10) return '[Max Depth Reached]';
-    
-    if (obj === null || obj === undefined) return obj;
-    
-    // Handle primitive types
-    if (typeof obj !== 'object') return obj;
-    
-    // Handle arrays
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.removeSensitiveFields(item, depth + 1));
-    }
-    
-    // Handle objects
-    const sanitized = {};
-    
-    for (const [key, value] of Object.entries(obj)) {
-      const keyLower = key.toLowerCase();
-      
-      // Check if field is sensitive
-      const isSensitive = this.sensitiveFields.some(field => 
-        keyLower.includes(field.toLowerCase())
-      );
-      
-      if (isSensitive) {
-        // Skip sensitive fields entirely
-        continue;
+      if (includeEmail && user.email) {
+        sanitized.email = user.email;
       }
-      
-      // Check if field should be masked
-      const shouldMask = this.maskableFields.some(field => 
-        keyLower.includes(field.toLowerCase())
-      );
-      
-      if (shouldMask && typeof value === 'string') {
-        if (keyLower.includes('email')) {
-          sanitized[key] = this.maskEmail(value);
-        } else {
-          sanitized[key] = this.maskString(value);
-        }
-      } else {
-        // Recursively sanitize nested objects
-        sanitized[key] = this.removeSensitiveFields(value, depth + 1);
+
+      if (includeAdminStatus) {
+        sanitized.admin = user.admin || false;
       }
-    }
-    
-    return sanitized;
+
+      if (includePersonalData) {
+        sanitized.displayName = user.displayName;
+        sanitized.avatar = user.avatar;
+        sanitized.customAvatarUrl = user.customAvatarUrl;
+        sanitized.boringAvatarStyle = user.boringAvatarStyle;
+        sanitized.boringAvatarColors = user.boringAvatarColors;
+      }
+
+      // Never include sensitive data
+      // password, twoFASecret, twoFABackupCodes, etc. are intentionally omitted
+
+      return sanitized;
+    });
   }
 
   /**
-   * Mask a string value
-   * @param {string} str - String to mask
-   * @returns {string} Masked string
+   * Creates a safe user profile for the current user
+   * @param {Object} user - User object
+   * @returns {Object} - Safe user profile
    */
-  maskString(str) {
-    if (!str || typeof str !== 'string') {
-      return '';
+  static createUserProfile(user) {
+    if (!user || typeof user !== 'object') {
+      return null;
     }
-
-    if (str.length <= 4) {
-      return '*'.repeat(str.length);
-    }
-
-    return str.substring(0, 2) + '*'.repeat(str.length - 4) + str.slice(-2);
-  }
-
-  /**
-   * Sanitize request body for logging
-   * @param {Object} body - Request body
-   * @returns {Object} Sanitized body
-   */
-  sanitizeRequestBody(body) {
-    if (!body || typeof body !== 'object') {
-      return body;
-    }
-
-    return this.removeSensitiveFields(body);
-  }
-
-  /**
-   * Sanitize error object for safe logging
-   * @param {Error} error - Error object
-   * @returns {Object} Sanitized error data
-   */
-  sanitizeError(error) {
-    if (!error) return null;
-
-    const sanitized = {
-      message: error.message,
-      name: error.name,
-      stack: error.stack ? error.stack.split('\n').slice(0, 5).join('\n') : undefined
-    };
-
-    // Remove any sensitive data from error message
-    if (sanitized.message) {
-      this.sensitiveFields.forEach(field => {
-        const regex = new RegExp(field, 'gi');
-        sanitized.message = sanitized.message.replace(regex, '[REDACTED]');
-      });
-    }
-
-    return sanitized;
-  }
-
-  /**
-   * Create safe user profile for current user
-   * @param {Object} user - Current user object
-   * @returns {Object} Safe user profile
-   */
-  createUserProfile(user) {
-    if (!user) return null;
 
     return {
       userId: user.userId,
       username: user.username,
-      email: user.email, // Full email for own profile
+      email: user.email,
+      displayName: user.displayName,
       admin: user.admin || false,
       twoFAEnabled: user.twoFAEnabled || false,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin,
+      avatar: user.avatar,
       customAvatarUrl: user.customAvatarUrl,
       boringAvatarStyle: user.boringAvatarStyle,
       boringAvatarColors: user.boringAvatarColors,
-      createdAt: user.createdAt,
-      lastLogin: user.lastLogin
+      lang: user.lang
+    };
+  }
+
+  /**
+   * Sanitizes error objects for logging and responses
+   * @param {Error} error - Error object
+   * @returns {Object} - Sanitized error data
+   */
+  static sanitizeError(error) {
+    if (!error) {
+      return null;
+    }
+
+    const sanitized = {
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      status: error.status || error.statusCode
+    };
+
+    // Only include stack trace in development
+    if (process.env.NODE_ENV === 'development') {
+      sanitized.stack = error.stack;
+    }
+
+    return sanitized;
+  }
+
+  /**
+   * Sanitizes request data for logging
+   * @param {Object} req - Express request object
+   * @returns {Object} - Sanitized request data
+   */
+  static sanitizeRequest(req) {
+    if (!req) {
+      return {};
+    }
+
+    const sanitized = {
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      timestamp: new Date().toISOString()
+    };
+
+    if (req.user) {
+      sanitized.userId = req.user.userId;
+      sanitized.username = req.user.username;
+    }
+
+    // Never log sensitive data from body or headers
+    // passwords, tokens, etc. should not be logged
+
+    return sanitized;
+  }
+
+  /**
+   * Sanitizes HTML content to prevent XSS
+   * @param {string} html - HTML content
+   * @returns {string} - Sanitized HTML
+   */
+  static sanitizeHTML(html) {
+    if (typeof html !== 'string') {
+      return '';
+    }
+
+    // Basic HTML sanitization - remove script tags and dangerous attributes
+    return html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .trim();
+  }
+
+  /**
+   * Validates and sanitizes configuration data
+   * @param {Object} config - Configuration object
+   * @returns {Object} - Sanitized configuration
+   */
+  static sanitizeConfig(config) {
+    if (!config || typeof config !== 'object') {
+      return {};
+    }
+
+    const sanitized = {};
+    const allowedFields = [
+      'name', 'version', 'mode', 'port', 'baseUri',
+      'ogTitle', 'ogDescription', 'theme', 'language',
+      'timezone', 'dateFormat', 'unitPrefix'
+    ];
+
+    allowedFields.forEach(field => {
+      if (config[field] !== undefined) {
+        sanitized[field] = config[field];
+      }
+    });
+
+    return sanitized;
+  }
+
+  /**
+   * Sanitizes database query results
+   * @param {*} data - Database query result
+   * @param {Array} sensitiveFields - Fields to remove
+   * @returns {*} - Sanitized data
+   */
+  static sanitizeDbResult(data, sensitiveFields = []) {
+    if (!data) {
+      return data;
+    }
+
+    const defaultSensitiveFields = [
+      'password', 'twoFASecret', 'twoFABackupCodes', 'sessionSecret',
+      'jwtSecret', 'encryptionKey', 'apiKey', 'webhookSecret'
+    ];
+
+    const fieldsToRemove = [...defaultSensitiveFields, ...sensitiveFields];
+
+    if (Array.isArray(data)) {
+      return data.map(item => this.removeFields(item, fieldsToRemove));
+    } else if (typeof data === 'object') {
+      return this.removeFields(data, fieldsToRemove);
+    }
+
+    return data;
+  }
+
+  /**
+   * Removes specified fields from an object
+   * @param {Object} obj - Object to sanitize
+   * @param {Array} fields - Fields to remove
+   * @returns {Object} - Sanitized object
+   */
+  static removeFields(obj, fields) {
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+
+    const sanitized = { ...obj };
+    fields.forEach(field => {
+      delete sanitized[field];
+    });
+
+    return sanitized;
+  }
+
+  /**
+   * Validates and sanitizes pagination parameters
+   * @param {Object} query - Query parameters
+   * @returns {Object} - Sanitized pagination
+   */
+  static sanitizePagination(query) {
+    const page = Math.max(1, parseInt(query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    return { page, limit, offset };
+  }
+
+  /**
+   * Sanitizes sort parameters
+   * @param {string} sortBy - Field to sort by
+   * @param {string} sortOrder - Sort order (asc/desc)
+   * @param {Array} allowedFields - Allowed sort fields
+   * @returns {Object} - Sanitized sort parameters
+   */
+  static sanitizeSort(sortBy, sortOrder, allowedFields = []) {
+    const sanitizedSortBy = allowedFields.includes(sortBy) ? sortBy : allowedFields[0] || 'createdAt';
+    const sanitizedSortOrder = ['asc', 'desc'].includes(sortOrder?.toLowerCase()) ? sortOrder.toLowerCase() : 'desc';
+
+    return {
+      sortBy: sanitizedSortBy,
+      sortOrder: sanitizedSortOrder
     };
   }
 }
 
-// Export singleton instance
-module.exports = new DataSanitizer();
+module.exports = DataSanitizer;

@@ -16,7 +16,7 @@ const saltRounds = configManager.get("saltRounds") || 10;
 const log = require("../../utils/secureLogger");
 const { isAuthenticated } = require("../../handlers/auth.js");
 const { InputValidator } = require("../../utils/inputValidation");
-const dataSanitizer = require("../../utils/dataSanitizer");
+const DataSanitizer = require("../../utils/dataSanitizer");
 
 async function doesUserExist(username) {
   const users = await db.get("users");
@@ -34,24 +34,24 @@ router.get("/account", async (req, res) => {
     const users = (await db.get("users")) || [];
     
     // Sanitize user data for template rendering
-    const sanitizedUsers = dataSanitizer.sanitizeUsers(users, {
+    const sanitizedUsers = DataSanitizer.sanitizeUsers(users, {
       includeEmail: false,
       includeAdminStatus: false,
       includePersonalData: false
     });
     
     // Create safe profile for current user (includes their own email)
-    const userProfile = dataSanitizer.createUserProfile(req.user);
+    const userProfile = DataSanitizer.createUserProfile(req.user);
     
     res.render("account", {
       req,
       user: userProfile,
       users: sanitizedUsers,
-      settings: dataSanitizer.removeSensitiveFields(settings),
+      settings: DataSanitizer.removeSensitiveFields(settings),
       getUserAvatarUrl
     });
   } catch (error) {
-    log.error("Error loading account page:", dataSanitizer.sanitizeError(error));
+    log.error("Error loading account page:", DataSanitizer.sanitizeError(error));
     res.status(500).send("Internal Server Error");
   }
 });
@@ -61,7 +61,7 @@ router.get("/accounts", async (req, res) => {
     let users = (await db.get("users")) || [];
 
     // Use data sanitizer for consistent and secure data filtering
-    const sanitizedUsers = dataSanitizer.sanitizeUsers(users, {
+    const sanitizedUsers = DataSanitizer.sanitizeUsers(users, {
       includeEmail: false,        // Never include email in public listings
       includeAdminStatus: true,   // Include admin status for UI purposes
       includePersonalData: true   // Include non-sensitive personal data
@@ -70,7 +70,7 @@ router.get("/accounts", async (req, res) => {
     log.info(`User accounts data requested by user: ${req.user?.username || 'unknown'}`);
     res.json(sanitizedUsers);
   } catch (error) {
-    log.error("Error fetching user accounts:", dataSanitizer.sanitizeError(error));
+    log.error("Error fetching user accounts:", DataSanitizer.sanitizeError(error));
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -151,15 +151,30 @@ router.get("/enable-2fa", isAuthenticated, async (req, res) => {
     const currentUser = users.find(
       (user) => user.username === req.user.username
     );
+    
+    // Generate secure secret with backup codes
     const secret = speakeasy.generateSecret({
-      length: 20,
+      length: 32, // Increased length for better security
       name: `Impulse (${currentUser.username})`,
       issuer: "Impulse",
     });
+    
+    // Generate backup codes
+    const backupCodes = [];
+    for (let i = 0; i < 10; i++) {
+      backupCodes.push(require('crypto').randomBytes(4).toString('hex').toUpperCase());
+    }
 
     const updatedUsers = users.map((user) => {
       if (user.username === req.user.username) {
-        return { ...user, twoFASecret: secret.base32, twoFAEnabled: false };
+        return { 
+          ...user, 
+          twoFASecret: secret.base32, 
+          twoFAEnabled: false,
+          twoFABackupCodes: backupCodes,
+          twoFAAttempts: 0,
+          twoFALastAttempt: null
+        };
       } else {
         return user;
       }
@@ -173,8 +188,8 @@ router.get("/enable-2fa", isAuthenticated, async (req, res) => {
         user: req.user,
         users,
         name: (await db.get("name")) || "Impulse",
-
         qrCode: data_url,
+        backupCodes: backupCodes
       });
     });
   } catch (error) {
@@ -191,16 +206,36 @@ router.post("/verify-2fa", isAuthenticated, async (req, res) => {
       (user) => user.username === req.user.username
     );
 
+    // Rate limiting for 2FA attempts
+    const now = Date.now();
+    const attempts = currentUser.twoFAAttempts || 0;
+    const lastAttempt = currentUser.twoFALastAttempt || 0;
+    
+    // Reset attempts if more than 15 minutes have passed
+    if (now - lastAttempt > 15 * 60 * 1000) {
+      currentUser.twoFAAttempts = 0;
+    }
+    
+    if (attempts >= 5) {
+      return res.status(429).send("Too many 2FA attempts. Please try again in 15 minutes.");
+    }
+
     const verified = speakeasy.totp.verify({
       secret: currentUser.twoFASecret,
       encoding: "base32",
       token,
+      window: 1 // Allow 1 step tolerance for clock drift
     });
 
     if (verified) {
       const updatedUsers = users.map((user) => {
         if (user.username === req.user.username) {
-          return { ...user, twoFAEnabled: true };
+          return { 
+            ...user, 
+            twoFAEnabled: true,
+            twoFAAttempts: 0,
+            twoFALastAttempt: null
+          };
         } else {
           return user;
         }
@@ -209,6 +244,20 @@ router.post("/verify-2fa", isAuthenticated, async (req, res) => {
 
       res.redirect("/account?msg=2FAEnabled");
     } else {
+      // Increment failed attempts
+      const updatedUsers = users.map((user) => {
+        if (user.username === req.user.username) {
+          return { 
+            ...user, 
+            twoFAAttempts: attempts + 1,
+            twoFALastAttempt: now
+          };
+        } else {
+          return user;
+        }
+      });
+      await db.set("users", updatedUsers);
+      
       res.status(400).send("Invalid token");
     }
   } catch (error) {
@@ -223,7 +272,14 @@ router.post("/disable-2fa", isAuthenticated, async (req, res) => {
 
     const updatedUsers = users.map((user) => {
       if (user.username === req.user.username) {
-        return { ...user, twoFAEnabled: false, twoFASecret: null };
+        return { 
+          ...user, 
+          twoFAEnabled: false, 
+          twoFASecret: null,
+          twoFABackupCodes: null,
+          twoFAAttempts: 0,
+          twoFALastAttempt: null
+        };
       } else {
         return user;
       }

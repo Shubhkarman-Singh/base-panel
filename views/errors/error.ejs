@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error <%= status %> - <%= name || 'Impulse' %></title>
+    <link href="/assets/tailwind.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+        <div class="mb-6">
+            <div class="text-6xl font-bold text-red-500 mb-2"><%= status %></div>
+            <h1 class="text-2xl font-semibold text-gray-800 dark:text-white mb-4">
+                <% if (status === 404) { %>
+                    Page Not Found
+                <% } else if (status === 403) { %>
+                    Access Forbidden
+                <% } else if (status === 401) { %>
+                    Unauthorized
+                <% } else if (status === 500) { %>
+                    Internal Server Error
+                <% } else { %>
+                    Error Occurred
+                <% } %>
+            </h1>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+                <%= error %>
+            </p>
+        </div>
+        
+        <div class="space-y-3">
+            <a href="/" class="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-200">
+                Go Home
+            </a>
+            
+            <% if (user) { %>
+                <a href="/dashboard" class="block w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition duration-200">
+                    Dashboard
+                </a>
+            <% } else { %>
+                <a href="/login" class="block w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition duration-200">
+                    Login
+                </a>
+            <% } %>
+            
+            <button onclick="history.back()" class="block w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded transition duration-200">
+                Go Back
+            </button>
+        </div>
+        
+        <% if (process.env.NODE_ENV === 'development' && typeof stack !== 'undefined') { %>
+            <details class="mt-6 text-left">
+                <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                    Debug Information (Development Only)
+                </summary>
+                <pre class="mt-2 text-xs bg-gray-100 dark:bg-gray-700 p-3 rounded overflow-auto max-h-40">
+<%= stack %>
+                </pre>
+            </details>
+        <% } %>
+    </div>
+</body>
+</html>

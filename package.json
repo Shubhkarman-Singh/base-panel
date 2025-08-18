@@ -18,6 +18,7 @@
     "test": "npm run test-config && npm run security-audit",
     "test-config": "node test-config.js",
     "security-audit": "node scripts/security-audit.js",
+    "security-migrate": "node scripts/security-migration.js",
     "migrate": "node migrate-to-env.js",
     "clean": "rm -rf node_modules package-lock.json && npm install",
     "reset": "rm -f impulse.db sessions.db && npm run create-user"
@@ -26,7 +27,6 @@
   "license": "MIT",
   "dependencies": {
     "@keyv/sqlite": "^3.6.7",
-    "dotenv": "^16.3.1",
     "@keyvhq/core": "^2.1.7",
     "@keyvhq/mysql": "^2.1.7",
     "@tailwindcss/forms": "^0.5.10",
@@ -39,6 +39,7 @@
     "chalk": "^4.1.2",
     "commander": "^12.1.0",
     "cookie-parser": "^1.4.7",
+    "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-basic-auth": "^1.2.1",
@@ -47,6 +48,7 @@
     "express-ws": "^5.0.2",
     "form-data": "^4.0.4",
     "fs": "^0.0.1-security",
+    "helmet": "^7.1.0",
     "keyv": "^4.5.4",
     "multer": "^2.0.2",
     "node-schedule": "^2.1.1",
