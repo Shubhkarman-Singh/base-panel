@@ -43,8 +43,8 @@ class StartupValidation {
     if (!fs.existsSync(envPath)) {
       this.warnings.push({
         type: 'ENVIRONMENT',
-        message: '.env file not found. Using config.json fallback.',
-        suggestion: 'Run "npm run migrate" to create secure environment configuration'
+        message: '.env file not found. Using default configuration values.',
+        suggestion: 'Copy .env.example to .env and configure your environment variables'
       });
     }
 
@@ -75,7 +75,7 @@ class StartupValidation {
           this.errors.push({
             type: 'CONFIGURATION',
             message: `Required configuration field '${field}' is missing`,
-            suggestion: `Set ${field.toUpperCase()} in your .env file or config.json`
+            suggestion: `Set ${field.toUpperCase()} in your .env file`
           });
         }
       });

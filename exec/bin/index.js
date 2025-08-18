@@ -104,8 +104,8 @@ program
     const { v4: uuidv4 } = require("uuid");
     const bcrypt = require("bcrypt");
     const log = new (require("cat-loggr"))();
-    const config = require("../../config.json");
-    const saltRounds = config.saltRounds || 10;
+    const configManager = require("../../utils/configManager");
+    const saltRounds = configManager.get("saltRounds") || 10;
 
     const rl = readline.createInterface({
       input: process.stdin,

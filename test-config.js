@@ -65,9 +65,9 @@ try {
   console.error('❌ Configuration test failed:', error.message);
   console.log('');
   console.log('🔧 Troubleshooting:');
-  console.log('1. Make sure you have a .env file or valid config.json');
-  console.log('2. Run "npm run migrate" if upgrading from config.json');
-  console.log('3. Check that all required environment variables are set');
-  console.log('4. Verify your configuration syntax');
+  console.log('1. Make sure you have a .env file (copy from .env.example)');
+  console.log('2. Check that all required environment variables are set');
+  console.log('3. Verify your configuration syntax');
+  console.log('4. Run "npm run generate-secrets" to create secure secrets');
   process.exit(1);
 }

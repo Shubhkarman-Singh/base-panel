@@ -3,7 +3,6 @@ const { db } = require("../handlers/db");
 const log = new (require("cat-loggr"))();
 const readline = require("readline");
 const { v4: uuidv4 } = require("uuid");
-const config = require("../config.json");
 
 const rl = readline.createInterface({
   input: process.stdin,

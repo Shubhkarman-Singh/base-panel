@@ -1,13 +1,12 @@
 {
-  "watch": ["routes/**/*.js", "plugins/**/*.js", "config.json"],
+  "watch": ["routes/**/*.js", "plugins/**/*.js", ".env"],
   "ext": "js,ejs",
   "ignore": [
     "node_modules",
     "public",
     "storage",
     "logs",
-    "exec",
-    "config.json"
+    "exec"
   ],
   "exec": "npm run start"
 }

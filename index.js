@@ -263,19 +263,8 @@ function replaceRandomValues(obj) {
   }
 }
 
-/**
- * DEPRECATED: Updates the config.json file by replacing "random" values with random strings.
- * This function is deprecated in favor of environment variable configuration.
- * Use the migration tool: node utils/migrateSecurity.js
- */
-async function updateConfig() {
-  // This function is deprecated - configuration should now use environment variables
-  // Run: node utils/migrateSecurity.js to migrate to secure configuration
-  log.info("updateConfig() is deprecated. Use environment variables for configuration.");
-}
-
-// Skip automatic config update - use environment variables instead
-// updateConfig();
+// Configuration is now handled entirely through environment variables
+// See .env.example for configuration options
 
 function getLanguages() {
   return fs.readdirSync(__dirname + "/lang").map((file) => file.split(".")[0]);

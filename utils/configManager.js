@@ -29,57 +29,42 @@ class ConfigManager {
   }
 
   /**
-   * Load configuration with environment variable priority
+   * Load configuration from environment variables only
    */
   loadConfig() {
     if (this.config) return this.config;
 
-    // Load optional config.json as fallback (don't fail if missing)
-    let rawConfig = {};
-    try {
-      const configPath = path.join(process.cwd(), 'config.json');
-      if (fs.existsSync(configPath)) {
-        rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      }
-    } catch (error) {
-      // config.json is optional - just use empty object if it fails
-      console.log('config.json not found or invalid, using environment variables only');
-    }
-
-    // Build configuration with environment variables as priority
+    // Build configuration from environment variables only
     this.config = {
       // Database configuration
-      databaseURL: process.env.DATABASE_URL || rawConfig.databaseURL || 'sqlite://impulse.db',
-      databaseTable: process.env.DATABASE_TABLE || rawConfig.databaseTable || 'impulse',
+      databaseURL: process.env.DATABASE_URL || 'sqlite://impulse.db',
+      databaseTable: process.env.DATABASE_TABLE || 'impulse',
       
       // Session configuration
-      session_secret: process.env.SESSION_SECRET || rawConfig.session_secret,
+      session_secret: process.env.SESSION_SECRET,
       
       // Server configuration
-      port: parseInt(process.env.PORT) || rawConfig.port || 3000,
-      baseUri: process.env.BASE_URI || rawConfig.baseUri || 'http://localhost:3000',
-      domain: process.env.DOMAIN || rawConfig.domain || 'localhost',
-      mode: process.env.NODE_ENV || rawConfig.mode || 'production',
+      port: parseInt(process.env.PORT) || 3000,
+      baseUri: process.env.BASE_URI || 'http://localhost:3000',
+      domain: process.env.DOMAIN || 'localhost',
+      mode: process.env.NODE_ENV || 'production',
       
       // Application settings
-      version: process.env.VERSION || rawConfig.version || '0.0.1',
-      versionState: process.env.VERSION_STATE || rawConfig.versionState || 'alpha',
-      saltRounds: parseInt(process.env.SALT_ROUNDS) || rawConfig.saltRounds || 10,
-      ogTitle: process.env.OG_TITLE || rawConfig.ogTitle || 'Impulse Panel',
-      ogDescription: process.env.OG_DESCRIPTION || rawConfig.ogDescription || 'This is an instance of the Impulse Panel',
+      version: process.env.VERSION || '0.0.1',
+      versionState: process.env.VERSION_STATE || 'alpha',
+      saltRounds: parseInt(process.env.SALT_ROUNDS) || 10,
+      ogTitle: process.env.OG_TITLE || 'Impulse Panel',
+      ogDescription: process.env.OG_DESCRIPTION || 'This is an instance of the Impulse Panel',
       
       // Email configuration (optional)
-      smtp_host: process.env.SMTP_HOST || rawConfig.smtp_host,
-      smtp_port: parseInt(process.env.SMTP_PORT) || rawConfig.smtp_port,
-      smtp_user: process.env.SMTP_USER || rawConfig.smtp_user,
-      smtp_password: process.env.SMTP_PASSWORD || rawConfig.smtp_password,
+      smtp_host: process.env.SMTP_HOST,
+      smtp_port: parseInt(process.env.SMTP_PORT) || undefined,
+      smtp_user: process.env.SMTP_USER,
+      smtp_password: process.env.SMTP_PASSWORD,
       
       // Other sensitive configs (optional)
-      api_secret: process.env.API_SECRET || rawConfig.api_secret,
-      encryption_key: process.env.ENCRYPTION_KEY || rawConfig.encryption_key,
-      
-      // Keep non-sensitive config fields if they exist
-      note: rawConfig.note || "Configuration loaded from environment variables"
+      api_secret: process.env.API_SECRET,
+      encryption_key: process.env.ENCRYPTION_KEY
     };
 
     return this.config;

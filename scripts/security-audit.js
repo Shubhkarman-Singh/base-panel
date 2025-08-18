@@ -77,36 +77,159 @@ class SecurityAuditor {
     
     const requiredEnvVars = [
       'SESSION_SECRET',
-      'SALT_ROUNDS'
+      'DATABASE_URL'
     ];
 
     const recommendedEnvVars = [
       'NODE_ENV',
       'PORT',
-      'DATABASE_URL'
+      'BASE_URI',
+      'DOMAIN',
+      'SALT_ROUNDS'
     ];
 
+    const optionalSecurityVars = [
+      'API_SECRET',
+      'ENCRYPTION_KEY',
+      'JWT_SECRET'
+    ];
+
+    const productionVars = [
+      'SMTP_HOST',
+      'SMTP_PORT', 
+      'SMTP_USER',
+      'SMTP_PASSWORD'
+    ];
+
+    // Check required variables
     requiredEnvVars.forEach(envVar => {
       if (!process.env[envVar]) {
         this.log('error', `Missing required environment variable: ${envVar}`,
-          'This could lead to security vulnerabilities');
+          'This could lead to security vulnerabilities or application failure');
       } else {
         this.log('success', `Environment variable ${envVar} is set`);
       }
     });
 
+    // Check recommended variables
     recommendedEnvVars.forEach(envVar => {
       if (!process.env[envVar]) {
-        this.log('warning', `Missing recommended environment variable: ${envVar}`);
+        this.log('warning', `Missing recommended environment variable: ${envVar}`,
+          'Application will use defaults but may not be optimal for production');
       } else {
         this.log('success', `Environment variable ${envVar} is set`);
       }
     });
 
-    // Check for weak session secret
-    if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
-      this.log('error', 'SESSION_SECRET is too short', 
-        'Use at least 32 characters for session secrets');
+    // Check security-related variables
+    optionalSecurityVars.forEach(envVar => {
+      if (!process.env[envVar]) {
+        this.log('info', `Optional security variable ${envVar} not set`,
+          'Consider setting for enhanced security features');
+      } else {
+        this.log('success', `Security variable ${envVar} is configured`);
+      }
+    });
+
+    // Check production variables
+    if (process.env.NODE_ENV === 'production') {
+      productionVars.forEach(envVar => {
+        if (!process.env[envVar]) {
+          this.log('warning', `Production variable ${envVar} not set`,
+            'Email functionality may not work in production');
+        }
+      });
+    }
+
+    // Validate session secret strength
+    if (process.env.SESSION_SECRET) {
+      if (process.env.SESSION_SECRET.length < 32) {
+        this.log('error', 'SESSION_SECRET is too short (< 32 characters)', 
+          'Use at least 32 characters for session secrets');
+      } else if (process.env.SESSION_SECRET.length < 64) {
+        this.log('warning', 'SESSION_SECRET could be longer (< 64 characters)',
+          'Consider using 64+ characters for maximum security');
+      } else {
+        this.log('success', 'SESSION_SECRET has adequate length');
+      }
+
+      // Check for weak patterns
+      if (/^(.)\1+$/.test(process.env.SESSION_SECRET)) {
+        this.log('error', 'SESSION_SECRET uses repeated characters',
+          'Generate a cryptographically secure random secret');
+      } else if (process.env.SESSION_SECRET.includes('your_secure') || 
+                 process.env.SESSION_SECRET.includes('change_me') ||
+                 process.env.SESSION_SECRET.includes('example')) {
+        this.log('error', 'SESSION_SECRET appears to be a placeholder',
+          'Generate a real cryptographically secure secret');
+      }
+    }
+
+    // Check database URL format
+    if (process.env.DATABASE_URL) {
+      const dbUrl = process.env.DATABASE_URL;
+      if (dbUrl.startsWith('sqlite://')) {
+        this.log('success', 'Using SQLite database');
+        const dbFile = dbUrl.replace('sqlite://', '') || 'impulse.db';
+        if (fs.existsSync(dbFile)) {
+          this.log('success', `Database file ${dbFile} exists`);
+        } else {
+          this.log('info', `Database file ${dbFile} will be created on first run`);
+        }
+      } else if (dbUrl.startsWith('mysql://') || dbUrl.startsWith('postgresql://')) {
+        this.log('success', 'Using external database (recommended for production)');
+        
+        // Check for password in URL (security concern)
+        if (dbUrl.includes('@') && dbUrl.includes(':') && !dbUrl.includes('localhost')) {
+          this.log('warning', 'Database credentials in URL for remote database',
+            'Ensure connection is encrypted and credentials are secure');
+        }
+      } else {
+        this.log('error', 'Invalid DATABASE_URL format',
+          'Must start with sqlite://, mysql://, or postgresql://');
+      }
+    }
+
+    // Check NODE_ENV setting
+    if (process.env.NODE_ENV === 'production') {
+      this.log('success', 'Running in production mode');
+      
+      // Production-specific checks
+      if (process.env.BASE_URI && !process.env.BASE_URI.startsWith('https://')) {
+        this.log('error', 'BASE_URI should use HTTPS in production',
+          'HTTP connections are not secure for production use');
+      }
+    } else if (process.env.NODE_ENV === 'development') {
+      this.log('info', 'Running in development mode');
+    } else {
+      this.log('warning', 'NODE_ENV not set or invalid',
+        'Should be either "production" or "development"');
+    }
+
+    // Check for .env file existence
+    if (fs.existsSync('.env')) {
+      this.log('success', '.env file found');
+      
+      // Check .env file permissions
+      try {
+        const stats = fs.statSync('.env');
+        const mode = (stats.mode & parseInt('777', 8)).toString(8);
+        
+        if (mode === '600') {
+          this.log('success', '.env file has secure permissions (600)');
+        } else if (mode === '644') {
+          this.log('warning', '.env file is readable by group/others (644)',
+            'Consider setting permissions to 600 for better security');
+        } else {
+          this.log('error', `.env file has insecure permissions (${mode})`,
+            'Set permissions to 600: chmod 600 .env');
+        }
+      } catch (error) {
+        this.log('warning', 'Cannot check .env file permissions');
+      }
+    } else {
+      this.log('error', '.env file not found',
+        'Copy .env.example to .env and configure your settings');
     }
   }
 
@@ -231,16 +354,144 @@ class SecurityAuditor {
           const mode = (stats.mode & parseInt('777', 8)).toString(8);
           
           if (mode === '644' || mode === '600') {
-            this.log('success', `Database ${dbFile} has secure permissions`);
+            this.log('success', `Database ${dbFile} has secure permissions (${mode})`);
           } else {
             this.log('error', `Database ${dbFile} has insecure permissions: ${mode}`,
-              'Database files should not be world-readable');
+              'Database files should not be world-readable (use 600 or 644)');
+          }
+
+          // Check file size for potential issues
+          const sizeInMB = stats.size / (1024 * 1024);
+          if (sizeInMB > 100) {
+            this.log('warning', `Database ${dbFile} is large (${sizeInMB.toFixed(1)}MB)`,
+              'Consider database maintenance or cleanup');
           }
         } catch (error) {
-          this.log('error', `Cannot check database permissions for ${dbFile}`);
+          this.log('error', `Cannot check database permissions for ${dbFile}`, error.message);
+        }
+      } else {
+        this.log('info', `Database ${dbFile} not found (will be created on first run)`);
+      }
+    });
+
+    // Check for backup files that might contain sensitive data
+    const backupPatterns = ['*.bak', '*.backup', '*.sql', '*.dump'];
+    backupPatterns.forEach(pattern => {
+      try {
+        const files = fs.readdirSync('.').filter(file => 
+          file.match(new RegExp(pattern.replace('*', '.*')))
+        );
+        if (files.length > 0) {
+          this.log('warning', `Found potential backup files: ${files.join(', ')}`,
+            'Ensure backup files are properly secured and not in public directories');
+        }
+      } catch (error) {
+        // Ignore errors when checking for backup files
+      }
+    });
+  }
+
+  checkConfigurationFiles() {
+    console.log('\n⚙️  Checking Configuration Files...');
+    
+    // Check for old config.json files
+    if (fs.existsSync('config.json')) {
+      this.log('warning', 'Legacy config.json file found',
+        'This file is no longer used. Consider removing it or keeping as backup only');
+    } else {
+      this.log('success', 'No legacy config.json found (good - using environment variables)');
+    }
+
+    // Check for .env.example
+    if (fs.existsSync('.env.example')) {
+      this.log('success', '.env.example template file exists');
+    } else {
+      this.log('warning', '.env.example template file missing',
+        'Users need this file to set up their environment');
+    }
+
+    // Check for sensitive files in public directories
+    const publicDirs = ['public', 'static', 'assets'];
+    const sensitiveFiles = ['.env', 'config.json', '*.db', '*.key', '*.pem'];
+    
+    publicDirs.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        try {
+          const files = fs.readdirSync(dir, { recursive: true });
+          sensitiveFiles.forEach(pattern => {
+            const matches = files.filter(file => 
+              file.match(new RegExp(pattern.replace('*', '.*')))
+            );
+            if (matches.length > 0) {
+              this.log('error', `Sensitive files found in public directory ${dir}: ${matches.join(', ')}`,
+                'Move sensitive files outside public directories');
+            }
+          });
+        } catch (error) {
+          // Ignore errors when checking public directories
         }
       }
     });
+  }
+
+  checkLogSecurity() {
+    console.log('\n📝 Checking Log Security...');
+    
+    const logDirs = ['logs', 'log', 'var/log'];
+    const logFiles = ['error.log', 'access.log', 'app.log', 'debug.log'];
+    
+    let foundLogs = false;
+    
+    logDirs.forEach(dir => {
+      if (fs.existsSync(dir)) {
+        foundLogs = true;
+        try {
+          const stats = fs.statSync(dir);
+          const mode = (stats.mode & parseInt('777', 8)).toString(8);
+          
+          if (mode === '755' || mode === '750') {
+            this.log('success', `Log directory ${dir} has appropriate permissions (${mode})`);
+          } else {
+            this.log('warning', `Log directory ${dir} has permissions: ${mode}`,
+              'Consider setting log directory permissions to 750 or 755');
+          }
+        } catch (error) {
+          this.log('warning', `Cannot check permissions for log directory ${dir}`);
+        }
+      }
+    });
+
+    // Check for log files in root directory
+    logFiles.forEach(logFile => {
+      if (fs.existsSync(logFile)) {
+        foundLogs = true;
+        try {
+          const stats = fs.statSync(logFile);
+          const mode = (stats.mode & parseInt('777', 8)).toString(8);
+          
+          if (mode === '644' || mode === '640') {
+            this.log('success', `Log file ${logFile} has secure permissions (${mode})`);
+          } else {
+            this.log('warning', `Log file ${logFile} has permissions: ${mode}`,
+              'Consider setting log file permissions to 644 or 640');
+          }
+
+          // Check log file size
+          const sizeInMB = stats.size / (1024 * 1024);
+          if (sizeInMB > 50) {
+            this.log('warning', `Log file ${logFile} is large (${sizeInMB.toFixed(1)}MB)`,
+              'Consider implementing log rotation');
+          }
+        } catch (error) {
+          this.log('warning', `Cannot check permissions for log file ${logFile}`);
+        }
+      }
+    });
+
+    if (!foundLogs) {
+      this.log('info', 'No log files or directories found',
+        'Consider implementing proper logging for production deployments');
+    }
   }
 
   generateReport() {
@@ -294,21 +545,41 @@ class SecurityAuditor {
     console.log('🔍 Starting Security Audit for Impulse Panel');
     console.log('='.repeat(50));
     
+    // Load environment variables for testing
+    try {
+      require('dotenv').config();
+    } catch (error) {
+      this.log('warning', 'dotenv not available, using system environment variables only');
+    }
+    
     this.checkEnvironmentVariables();
+    this.checkConfigurationFiles();
     this.checkFilePermissions();
     this.checkSecurityHeaders();
     this.checkEmailSecurity();
     this.checkFileUploadSecurity();
     this.checkDatabaseSecurity();
+    this.checkLogSecurity();
     this.checkDependencyVulnerabilities();
     
     const passed = this.generateReport();
     
     if (passed) {
       console.log('\n✅ Security audit completed successfully!');
+      console.log('\n🔒 Security recommendations:');
+      console.log('• Regularly update dependencies (npm audit && npm update)');
+      console.log('• Rotate secrets quarterly');
+      console.log('• Monitor logs for suspicious activity');
+      console.log('• Keep backups secure and encrypted');
+      console.log('• Use HTTPS in production');
       process.exit(0);
     } else {
       console.log('\n❌ Security audit found critical issues that need attention.');
+      console.log('\n🔧 Quick fixes:');
+      console.log('• Run: npm run generate-secrets (to create secure secrets)');
+      console.log('• Run: chmod 600 .env (to secure environment file)');
+      console.log('• Run: npm audit fix (to fix dependency vulnerabilities)');
+      console.log('• Review and address all critical issues above');
       process.exit(1);
     }
   }
