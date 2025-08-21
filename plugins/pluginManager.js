@@ -205,6 +205,7 @@ async function loadAndActivatePlugins() {
 }
 
 router.get("/admin/plugins", isAdmin, async (req, res) => {
+  console.log('Plugins route accessed');
   const pluginsJson = await readPluginsJson();
 
   const pluginArray = Object.entries(pluginsJson).map(([name, details]) => ({
@@ -214,12 +215,18 @@ router.get("/admin/plugins", isAdmin, async (req, res) => {
 
   const enabledPlugins = pluginArray.filter((plugin) => plugin.enabled);
 
+  console.log('Rendering plugins page with:', { 
+    pluginCount: pluginList.length, 
+    enabledCount: enabledPlugins.length 
+  });
+
   res.render("admin/plugins", {
     req,
     user: req.user,
     plugins: pluginList,
     pluginSidebar,
     enabledPlugins,
+    csrfToken: req.csrfToken ? req.csrfToken() : '', // Add CSRF token
   });
 });
 

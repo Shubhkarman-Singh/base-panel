@@ -44,11 +44,14 @@ router.get("/api/v1/users/:type?/:value?", validateApiKey, requireApiPermission(
         return res.status(404).json({ error: "User not found" });
       }
 
-      return res.json(user);
+      // Remove sensitive fields
+      const { password, resetToken, ...safeUser } = user;
+      return res.json(safeUser);
     }
 
-    // If no type or value, return all users
-    res.json(users);
+    // If no type or value, return all users (sanitized)
+    const sanitized = users.map(({ password, resetToken, ...u }) => u);
+    res.json(sanitized);
   } catch (error) {
     log.error("Error retrieving users:", error);
     res.status(500).json({ error: "Failed to retrieve users" });
@@ -133,6 +136,14 @@ router.post("/api/v1/user/create-user", validateApiKey, requireApiPermission(['u
       return res.status(409).json({ error: "User already exists" });
     }
 
+    // Only allow admin users to create other admin users
+    if (admin === true && !req.apiKey.permissions.includes('admin')) {
+      return res.status(403).json({ 
+        error: "Insufficient permissions to create admin users",
+        code: "INSUFFICIENT_PERMISSIONS"
+      });
+    }
+
     const newUserId = userId || uuidv4();
 
     const user = {
@@ -189,10 +200,13 @@ router.post(
         res
           .status(200)
           .json({
-            message: `Password reset email sent successfully (${resetToken})`,
+            message: "Password reset email sent successfully",
           });
       } else {
-        res.status(200).json({ password: resetToken });
+        // Don't expose the token in API response for security
+        res.status(200).json({ 
+          message: "Password reset token generated. Check your email or contact administrator." 
+        });
       }
     } catch (error) {
       log.error("Error handling password reset:", error);
@@ -604,7 +618,7 @@ router.post("/api/v1/nodes/create", validateApiKey, requireApiPermission(['node:
 router.delete("/api/v1/nodes/:id/delete", validateApiKey, requireApiPermission(['node:delete', 'admin']), async (req, res) => {
   const { id } = req.params;
   const nodes = (await db.get("nodes")) || [];
-  const newNodes = nodes.filter((id) => id !== id);
+  const newNodes = nodes.filter((nodeId) => nodeId !== id);
 
   if (!id) return res.send("The node ID was invalid");
 

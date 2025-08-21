@@ -6,8 +6,9 @@ const {
   isInstanceSuspended,
 } = require("../../utils/authHelper");
 const { deleteFile } = require("../../utils/fileHelper");
+const { requireAuth, requireInstanceAccess } = require("../../utils/authMiddleware.js");
 
-router.get("/instance/:id/files/delete/:filename", async (req, res) => {
+router.post("/instance/:id/files/delete/:filename", requireAuth, requireInstanceAccess, async (req, res) => {
   if (!req.user) return res.status(401).send("Authentication required");
 
   const { id, filename } = req.params;

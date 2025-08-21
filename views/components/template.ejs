@@ -301,7 +301,7 @@
    -->
    <% if (user.admin == true) { %>
    <div class="relative mt-3 mr-4">
-     <button type="button" class="relative -m-1.5 flex items-center p-1.5 rounded-lg hover:bg-white/5 transition-colors duration-200 group" onclick="window.location.href='/admin/plugins'">
+     <button id="plugins-button" type="button" class="relative -m-1.5 flex items-center p-1.5 rounded-lg hover:bg-white/5 transition-colors duration-200 group">
        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" class="w-6 h-6 text-white">
          <rect width="256" height="256" fill="none"/>
          <path d="M165.78,224H208a16,16,0,0,0,16-16V170.35A8,8,0,0,0,212.94,163a23.37,23.37,0,0,1-8.94,1.77c-13.23,0-24-11.1-24-24.73s10.77-24.73,24-24.73a23.37,23.37,0,0,1,8.94,1.77A8,8,0,0,0,224,109.65V72a16,16,0,0,0-16-16H171.78a35.36,35.36,0,0,0,.22-4,36,36,0,0,0-72,0,35.36,35.36,0,0,0,.22,4H64A16,16,0,0,0,48,72v32.22a35.36,35.36,0,0,0-4-.22,36,36,0,0,0,0,72,35.36,35.36,0,0,0,4-.22V208a16,16,0,0,0,16,16h42.22"/>
@@ -332,6 +332,8 @@
  <script>
    function toggleDropdown() {
      const dropdownMenu = document.getElementById('dropdown-menu');
+     if (!dropdownMenu) return; // Add null check
+     
      dropdownMenu.classList.toggle('hidden');
      if (!dropdownMenu.classList.contains('hidden')) {
        setTimeout(() => {
@@ -347,10 +349,31 @@
    window.addEventListener('click', function(e) {
      const userMenuButton = document.getElementById('user-menu-button');
      const dropdownMenu = document.getElementById('dropdown-menu');
-     if (!userMenuButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-       dropdownMenu.classList.add('hidden');
-       dropdownMenu.style.transform = 'scale(0.95)';
-       dropdownMenu.style.opacity = '0';
+     
+     // Add null checks before calling contains()
+     if (userMenuButton && dropdownMenu) {
+       if (!userMenuButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+         dropdownMenu.classList.add('hidden');
+         dropdownMenu.style.transform = 'scale(0.95)';
+         dropdownMenu.style.opacity = '0';
+       }
+     }
+   });
+
+   // Add plugins button event listener
+   document.addEventListener('DOMContentLoaded', function() {
+     const pluginsButton = document.getElementById('plugins-button');
+     console.log('Looking for plugins button:', pluginsButton);
+     if (pluginsButton) {
+       pluginsButton.addEventListener('click', function(e) {
+         e.preventDefault();
+         console.log('Plugins button clicked');
+         console.log('Current user admin status:', '<%= user.admin %>');
+         console.log('Attempting to navigate to /admin/plugins');
+         window.location.href = '/admin/plugins';
+       });
+     } else {
+       console.error('Plugins button not found in DOM');
      }
    });
  </script>
@@ -452,54 +475,58 @@
 
 
          document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.querySelector('.sidebar');
-            const toggleButton = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
             const colcont = document.getElementById('colcont');
-
-            function setCookie(name, value, days) {
-               const date = new Date();
-               date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-               const expires = "expires=" + date.toUTCString();
-               document.cookie = name + "=" + value + ";" + expires + ";path=/";
-            }
-            function getCookie(name) {
-               const nameEQ = name + "=";
-               const ca = document.cookie.split(';');
-               for(let i = 0; i < ca.length; i++) {
-                  let c = ca[i];
-                  while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                  if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            const toggleButton = document.getElementById('sidebar-toggle');
+            
+            // Only initialize sidebar functionality if sidebar elements exist
+            if (sidebar && colcont && toggleButton) {
+               function setCookie(name, value, days) {
+                  const date = new Date();
+                  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                  const expires = "expires=" + date.toUTCString();
+                  document.cookie = name + "=" + value + ";" + expires + ";path=/";
                }
-               return null;
-            }
-            const sidebarState = getCookie('sidebar-collapsed');
-            if (sidebarState === 'true') {
-               sidebar.classList.add('collapsed');
-               colcont.classList.add('colcont');
-            } else {
-               sidebar.classList.remove('collapsed');
-               colcont.classList.remove('colcont');
-            }
-            toggleButton.addEventListener('click', () => {
-               sidebar.classList.toggle('collapsed');
-               colcont.classList.toggle('colcont');
-               const isCollapsed = sidebar.classList.contains('collapsed');
-               setCookie('sidebar-collapsed', isCollapsed, 7);
-            });
-
-            const mobileToggleButton = document.getElementById('mobile-sidebar-toggle');
-            if (mobileToggleButton) {
-               mobileToggleButton.addEventListener('click', () => {
-                  sidebar.classList.toggle('open');
-                  if (sidebar.classList.contains('open')) {
-                     mobileToggleButton.classList.add('right-4');
-                     mobileToggleButton.classList.remove('left-4');
-                  } else {
-                     mobileToggleButton.classList.add('left-4');
-                     mobileToggleButton.classList.remove('right-4');
+               function getCookie(name) {
+                  const nameEQ = name + "=";
+                  const ca = document.cookie.split(';');
+                  for(let i = 0; i < ca.length; i++) {
+                     let c = ca[i];
+                     while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                     if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
                   }
+                  return null;
+               }
+               const sidebarState = getCookie('sidebar-collapsed');
+               if (sidebarState === 'true') {
+                  sidebar.classList.add('collapsed');
+                  colcont.classList.add('colcont');
+               } else {
+                  sidebar.classList.remove('collapsed');
+                  colcont.classList.remove('colcont');
+               }
+               toggleButton.addEventListener('click', () => {
+                  sidebar.classList.toggle('collapsed');
+                  colcont.classList.toggle('colcont');
+                  const isCollapsed = sidebar.classList.contains('collapsed');
+                  setCookie('sidebar-collapsed', isCollapsed, 7);
                });
+
+               const mobileToggleButton = document.getElementById('mobile-sidebar-toggle');
+               if (mobileToggleButton && sidebar) {
+                  mobileToggleButton.addEventListener('click', () => {
+                     sidebar.classList.toggle('open');
+                     if (sidebar.classList.contains('open')) {
+                        mobileToggleButton.classList.add('right-4');
+                        mobileToggleButton.classList.remove('left-4');
+                     } else {
+                        mobileToggleButton.classList.add('left-4');
+                        mobileToggleButton.classList.remove('right-4');
+                     }
+                  });
+               }
             }
+            // Remove the warning - sidebar elements are optional
          });
          </script>         
          

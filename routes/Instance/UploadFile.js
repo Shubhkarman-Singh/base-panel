@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
-const upload = multer({ dest: "tmp/" });
+const upload = multer({ dest: "tmp/", limits: { fileSize: 20 * 1024 * 1024, files: 10 } });
 const FormData = require("form-data");
 const fs = require("node:fs");
 const axios = require("axios");

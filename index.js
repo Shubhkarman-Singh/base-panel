@@ -25,6 +25,8 @@ try {
  */
 
 const express = require("express");
+const cors = require("cors");
+const compression = require("compression");
 const session = require("express-session");
 const passport = require("passport");
 const bodyParser = require("body-parser");
@@ -67,6 +69,9 @@ const { init } = require("./handlers/init.js");
 
 const log = require("./utils/secureLogger");
 
+// Hide framework fingerprinting
+app.disable('x-powered-by');
+
 app.use(
   session({
     store: new SqliteStore({
@@ -102,6 +107,25 @@ if (configManager.get("mode") === 'production') {
   // In development, disable proxy trust to avoid rate limit warnings
   app.set('trust proxy', false);
 }
+
+// CORS: strict whitelist with credentials support
+const allowedOrigins = (process.env.CORS_ORIGINS || configManager.get("baseUri") || "http://localhost:3000").split(',').map(o => o.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow same-origin/non-browser
+    const isAllowed = allowedOrigins.includes(origin);
+    callback(isAllowed ? null : new Error("CORS not allowed for this origin"), isAllowed);
+  },
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: [
+    "Content-Type","Authorization","X-Requested-With","x-csrf-token"
+  ],
+  credentials: true,
+  maxAge: 600
+}));
+
+// Compression for better performance
+app.use(compression());
 
 // Security headers middleware
 app.use(helmet({
@@ -331,16 +355,16 @@ app.use(async (req, res, next) => {
   }
 });
 
-if (configManager.get("mode") === "production" || false) {
-  app.use((req, res, next) => {
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "5");
+if (configManager.get("mode") === "production") {
+  // Static assets: long cache with ETag; bust via filenames
+  app.use("/assets", (req, res, next) => {
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     next();
   });
-
-  app.use("/assets", (req, res, next) => {
-    res.setHeader("Cache-Control", "public, max-age=1");
+  
+  // Dynamic pages: no-store
+  app.use((req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
     next();
   });
 }

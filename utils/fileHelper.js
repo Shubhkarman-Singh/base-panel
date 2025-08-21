@@ -1,5 +1,26 @@
 const axios = require("axios");
 const log = new (require("cat-loggr"))();
+const path = require("path");
+
+/**
+ * Sanitize file path to prevent path traversal attacks
+ * @param {string} filePath - The file path to sanitize
+ * @returns {string} - Sanitized file path
+ */
+function sanitizePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') {
+    return '';
+  }
+  
+  // Normalize path and resolve to prevent path traversal
+  const normalized = path.normalize(filePath);
+  
+  // Remove any parent directory references
+  const sanitized = normalized.replace(/\.\./g, '');
+  
+  // Remove leading slashes
+  return sanitized.replace(/^\/+/, '');
+}
 
 class FileOperations {
   constructor(instance) {
@@ -28,32 +49,41 @@ class FileOperations {
   }
 
   async fetchFiles(path = "") {
-    const query = path ? `?path=${encodeURIComponent(path)}` : "";
+    const sanitizedPath = sanitizePath(path);
+    const query = sanitizedPath ? `?path=${encodeURIComponent(sanitizedPath)}` : "";
     const data = await this.request("get", `/files${query}`);
     return data?.files || [];
   }
 
   async fetchFileContent(filename, path = "") {
-    const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    const data = await this.request("get", `/files/view/${filename}${query}`);
+    const sanitizedPath = sanitizePath(path);
+    const sanitizedFilename = sanitizePath(filename);
+    const query = sanitizedPath ? `?path=${encodeURIComponent(sanitizedPath)}` : "";
+    const data = await this.request("get", `/files/view/${sanitizedFilename}${query}`);
     return data?.content;
   }
 
   async createFile(filename, content, path = "") {
-    const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    return this.request("post", `/files/create/${filename}${query}`, {
+    const sanitizedPath = sanitizePath(path);
+    const sanitizedFilename = sanitizePath(filename);
+    const query = sanitizedPath ? `?path=${encodeURIComponent(sanitizedPath)}` : "";
+    return this.request("post", `/files/create/${sanitizedFilename}${query}`, {
       content,
     });
   }
 
   async editFile(filename, content, path = "") {
-    const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    return this.request("post", `/files/edit/${filename}${query}`, { content });
+    const sanitizedPath = sanitizePath(path);
+    const sanitizedFilename = sanitizePath(filename);
+    const query = sanitizedPath ? `?path=${encodeURIComponent(sanitizedPath)}` : "";
+    return this.request("post", `/files/edit/${sanitizedFilename}${query}`, { content });
   }
 
   async deleteFile(filename, path = "") {
-    const query = path ? `?path=${encodeURIComponent(path)}` : "";
-    return this.request("delete", `/files/delete/${filename}${query}`);
+    const sanitizedPath = sanitizePath(path);
+    const sanitizedFilename = sanitizePath(filename);
+    const query = sanitizedPath ? `?path=${encodeURIComponent(sanitizedPath)}` : "";
+    return this.request("delete", `/files/delete/${sanitizedFilename}${query}`);
   }
 }
 

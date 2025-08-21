@@ -6,17 +6,51 @@ const {
   isInstanceSuspended,
 } = require("../../utils/authHelper");
 const { createFile } = require("../../utils/fileHelper");
+const { requireAuth, requireInstanceAccess } = require("../../utils/authMiddleware.js");
 
 const { loadPlugins } = require("../../plugins/loadPls.js");
 const path = require("path");
 
 const plugins = loadPlugins(path.join(__dirname, "../../plugins"));
 
-router.post("/instance/:id/files/create/:filename", async (req, res) => {
+/**
+ * Validate filename for security
+ */
+function validateFilename(filename) {
+  if (!filename || typeof filename !== 'string') {
+    return { isValid: false, error: 'Invalid filename' };
+  }
+  
+  // Check for dangerous characters
+  const dangerousChars = /[<>:"|?*\x00-\x1f]/;
+  if (dangerousChars.test(filename)) {
+    return { isValid: false, error: 'Filename contains invalid characters' };
+  }
+  
+  // Check for path traversal attempts
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    return { isValid: false, error: 'Filename contains path traversal characters' };
+  }
+  
+  // Check length
+  if (filename.length > 255) {
+    return { isValid: false, error: 'Filename too long' };
+  }
+  
+  return { isValid: true };
+}
+
+router.post("/instance/:id/files/create/:filename", requireAuth, requireInstanceAccess, async (req, res) => {
   if (!req.user) return res.status(401).send("Authentication required");
 
   const { id, filename } = req.params;
   const { content } = req.body;
+
+  // Validate filename
+  const filenameValidation = validateFilename(filename);
+  if (!filenameValidation.isValid) {
+    return res.status(400).json({ error: filenameValidation.error });
+  }
 
   const instance = await db.get(id + "_instance");
   if (!instance) return res.status(404).send("Instance not found");
@@ -55,7 +89,7 @@ router.post("/instance/:id/files/create/:filename", async (req, res) => {
   }
 });
 
-router.get("/instance/:id/files/create", async (req, res) => {
+router.get("/instance/:id/files/create", requireAuth, requireInstanceAccess, async (req, res) => {
   if (!req.user) {
     return res.redirect("/");
   }
