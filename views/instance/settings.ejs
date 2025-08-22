@@ -54,7 +54,8 @@
         const response = await fetch(`/instance/reinstall/${instanceId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
             }
         });
 

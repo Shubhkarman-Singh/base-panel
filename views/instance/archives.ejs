@@ -92,7 +92,8 @@ async function createArchive() {
         const response = await fetch(`/instance/${instanceId}/archives/create`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
             }
         });
 
@@ -134,7 +135,8 @@ async function restoreArchive(archiveName) {
         const response = await fetch(`/instance/${instanceId}/archives/rollback/${encodeURIComponent(archiveName)}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
             },
             body: JSON.stringify({ archivename: archiveName })
         });
@@ -156,7 +158,8 @@ async function deleteArchive(archiveName) {
         const response = await fetch(`/instance/${instanceId}/archives/delete/${encodeURIComponent(archiveName)}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': '<%= csrfToken %>'
             },
             body: JSON.stringify({ archivename: archiveName })
         });

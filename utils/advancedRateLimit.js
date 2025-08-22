@@ -8,6 +8,7 @@ const log = new (require("cat-loggr"))();
 class AdvancedRateLimit {
   constructor() {
     this.attempts = new Map(); // In-memory cache for quick access
+    this.blockedIPs = new Set(); // Quick lookup for blocked IPs
     this.loadAttempts();
   }
 
@@ -16,6 +17,13 @@ class AdvancedRateLimit {
       const storedAttempts = await db.get("rate_limit_attempts");
       if (storedAttempts) {
         this.attempts = new Map(Object.entries(storedAttempts));
+        // Rebuild blocked IPs set
+        this.blockedIPs.clear();
+        for (const [key, data] of this.attempts.entries()) {
+          if (data.blockedUntil > Date.now()) {
+            this.blockedIPs.add(key);
+          }
+        }
       }
     } catch (error) {
       log.error("Error loading rate limit attempts:", error);
@@ -32,17 +40,29 @@ class AdvancedRateLimit {
   }
 
   /**
+   * Get client IP address with proxy support
+   */
+  getClientIP(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.headers['x-real-ip'] || 
+           req.connection.remoteAddress || 
+           req.socket.remoteAddress || 
+           req.ip || 
+           'unknown';
+  }
+
+  /**
    * Get exponential backoff delay based on attempt count
    */
   getBackoffDelay(attempts) {
-    // Exponential backoff: 1min, 5min, 15min, 1hour, 6hours, 24hours
+    // Exponential backoff: 5min, 15min, 1hour, 6hours, 24hours, 7days
     const delays = [
-      1 * 60 * 1000,      // 1 minute
-      5 * 60 * 1000,      // 5 minutes
-      15 * 60 * 1000,     // 15 minutes
-      60 * 60 * 1000,     // 1 hour
-      6 * 60 * 60 * 1000, // 6 hours
-      24 * 60 * 60 * 1000 // 24 hours
+      5 * 60 * 1000,       // 5 minutes
+      15 * 60 * 1000,      // 15 minutes
+      60 * 60 * 1000,      // 1 hour
+      6 * 60 * 60 * 1000,  // 6 hours
+      24 * 60 * 60 * 1000, // 24 hours
+      7 * 24 * 60 * 60 * 1000 // 7 days
     ];
     
     const index = Math.min(attempts - 1, delays.length - 1);
@@ -54,9 +74,25 @@ class AdvancedRateLimit {
    */
   createLoginLimiter() {
     return async (req, res, next) => {
-      const ip = req.ip || req.connection.remoteAddress;
+      const ip = this.getClientIP(req);
       const key = `login_${ip}`;
       const now = Date.now();
+
+      // Quick check for blocked IPs
+      if (this.blockedIPs.has(key)) {
+        const attemptData = this.attempts.get(key);
+        if (attemptData && attemptData.blockedUntil > now) {
+          const remainingTime = Math.ceil((attemptData.blockedUntil - now) / 1000 / 60);
+          return res.status(429).json({
+            error: "Too many failed login attempts",
+            retryAfter: `${remainingTime} minutes`,
+            blockedUntil: new Date(attemptData.blockedUntil).toISOString()
+          });
+        } else {
+          // Block expired, remove from blocked set
+          this.blockedIPs.delete(key);
+        }
+      }
 
       // Get current attempt data
       let attemptData = this.attempts.get(key);
@@ -74,8 +110,8 @@ class AdvancedRateLimit {
         });
       }
 
-      // Reset if enough time has passed (24 hours)
-      if (now - attemptData.lastAttempt > 24 * 60 * 60 * 1000) {
+      // Reset if enough time has passed (7 days)
+      if (now - attemptData.lastAttempt > 7 * 24 * 60 * 60 * 1000) {
         attemptData = { count: 0, lastAttempt: now, blockedUntil: 0 };
       }
 
@@ -94,8 +130,18 @@ class AdvancedRateLimit {
           if (attemptData.count >= 3) {
             const delay = this.getBackoffDelay(attemptData.count - 2);
             attemptData.blockedUntil = now + delay;
+            this.blockedIPs.add(key);
             
             log.warn(`IP ${ip} blocked for ${delay/1000/60} minutes after ${attemptData.count} failed login attempts`);
+            
+            // Log security event
+            log.security(`Failed login attempts exceeded for IP ${ip}`, {
+              ip,
+              attempts: attemptData.count,
+              blockedUntil: new Date(attemptData.blockedUntil).toISOString(),
+              userAgent: req.headers['user-agent'],
+              timestamp: new Date().toISOString()
+            });
           }
           
           this.attempts.set(key, attemptData);
@@ -104,7 +150,10 @@ class AdvancedRateLimit {
           !(res.getHeader('location') || '').includes('err='))) {
           // Successful login - reset attempts
           this.attempts.delete(key);
+          this.blockedIPs.delete(key);
           this.saveAttempts();
+          
+          log.info(`Successful login for IP ${ip}, resetting rate limit attempts`);
         }
 
         originalEnd.call(res, chunk, encoding);
@@ -124,7 +173,8 @@ class AdvancedRateLimit {
       keyGenerator: (req) => {
         // Rate limit by IP and email combination
         const email = req.body.email || 'unknown';
-        return `${req.ip}_${email}`;
+        const ip = this.getClientIP(req);
+        return `reset_${ip}_${email}`;
       },
       message: {
         error: "Too many password reset attempts for this email/IP combination",
@@ -132,6 +182,28 @@ class AdvancedRateLimit {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      skipSuccessfulRequests: false, // Count all attempts
+    });
+  }
+
+  /**
+   * Create rate limiter for registration attempts
+   */
+  createRegistrationLimiter() {
+    return rateLimit({
+      windowMs: 60 * 60 * 1000, // 1 hour
+      max: 5, // 5 registration attempts per hour
+      keyGenerator: (req) => {
+        const ip = this.getClientIP(req);
+        return `register_${ip}`;
+      },
+      message: {
+        error: "Too many registration attempts from this IP",
+        retryAfter: "1 hour"
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      skipSuccessfulRequests: false,
     });
   }
 
@@ -140,16 +212,42 @@ class AdvancedRateLimit {
    */
   cleanup() {
     const now = Date.now();
-    const cutoff = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const cutoff = 30 * 24 * 60 * 60 * 1000; // 30 days
     
+    let cleanedCount = 0;
     for (const [key, data] of this.attempts.entries()) {
       if (now - data.lastAttempt > cutoff) {
         this.attempts.delete(key);
+        this.blockedIPs.delete(key);
+        cleanedCount++;
       }
     }
     
     this.saveAttempts();
-    log.info(`Rate limit cleanup completed. Active entries: ${this.attempts.size}`);
+    log.info(`Rate limit cleanup completed. Cleaned ${cleanedCount} entries. Active entries: ${this.attempts.size}`);
+  }
+
+  /**
+   * Get rate limit statistics
+   */
+  getStats() {
+    const now = Date.now();
+    const stats = {
+      totalEntries: this.attempts.size,
+      blockedEntries: 0,
+      activeBlocks: 0
+    };
+
+    for (const [key, data] of this.attempts.entries()) {
+      if (data.blockedUntil > 0) {
+        stats.blockedEntries++;
+        if (data.blockedUntil > now) {
+          stats.activeBlocks++;
+        }
+      }
+    }
+
+    return stats;
   }
 }
 
@@ -164,5 +262,6 @@ setInterval(() => {
 module.exports = {
   advancedRateLimit,
   createLoginLimiter: () => advancedRateLimit.createLoginLimiter(),
-  createPasswordResetLimiter: () => advancedRateLimit.createPasswordResetLimiter()
+  createPasswordResetLimiter: () => advancedRateLimit.createPasswordResetLimiter(),
+  createRegistrationLimiter: () => advancedRateLimit.createRegistrationLimiter()
 };

@@ -14,6 +14,7 @@
                      </span>
                   </h2>
                   <form id="change-username-form" action="/change-username" method="POST" class="mt-5">
+                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                      <div class="flex flex-col sm:flex-row justify-between">
                         <div class="w-full sm:w-1/2 sm:mr-4 mb-4 sm:mb-0">
                            <label class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.username %>:</label>
@@ -43,6 +44,7 @@
                   <button onclick="window.location.href = '/enable-2fa';" class="mt-4 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.enabled2FA %></button>      
                  <% } else { %>
                  <form action="/disable-2fa" method="POST">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="mt-4 block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"><%= req.translations.disable2FA %></button>
                  </form>
                  <% } %>
@@ -60,6 +62,7 @@
                     
                     <% if (settings.customAvatars) { %>
                     <form action="/change-avatar" method="POST" class="space-y-4">
+                       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                        <div>
                           <label for="avatarUrl" class="text-neutral-400 text-sm tracking-tight mb-2 block">Custom Avatar URL</label>
                           <input type="url" name="avatarUrl" id="avatarUrl" 
@@ -80,6 +83,7 @@
                     <div class="mt-4 pt-4 border-t border-white/10">
                        <h4 class="text-white text-sm font-medium mb-3">Boring Avatars Style</h4>
                        <form action="/change-boring-avatar-style" method="POST" class="space-y-4">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                           <div>
                              <label class="text-neutral-400 text-sm tracking-tight mb-2 block">Style</label>
                              <select name="style" class="rounded-xl bg-neutral-600/20 border border-white/5 text-white text-sm px-3 py-2 w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -113,6 +117,25 @@
    </div>
 </main>
 
+<% if (req.query.err && req.query.err == "PasswordUpdateFailed") { %>
+  <div class="mt-2"></div>
+  <span class="text-red-600 pt-4 font-normal text-sm">Password update failed. Please try again.</span>
+<% } %>
+
+<% if (req.query.err && req.query.err == "CSRFTokenMissing") { %>
+  <div class="mt-2"></div>
+  <span class="text-red-600 pt-4 font-normal text-sm">Security token missing. Please refresh the page and try again.</span>
+<% } %>
+
+<% if (req.query.err && req.query.err == "CSRFValidationFailed") { %>
+  <div class="mt-2"></div>
+  <span class="text-red-600 pt-4 font-normal text-sm">Security validation failed. Please refresh the page and try again.</span>
+<% } %>
+
+<% if (req.query.err && req.query.err == "SessionRequired") { %>
+  <div class="mt-2"></div>
+  <span class="text-red-600 pt-4 font-normal text-sm">Session expired. Please refresh the page and try again.</span>
+<% } %>
 
 <style>
    #username-feedback, #current-password-feedback {
@@ -191,7 +214,8 @@
                    const response = await fetch('/validate-password', {
                        method: 'POST',
                        headers: {
-                           'Content-Type': 'application/json'
+                           'Content-Type': 'application/json',
+                           'X-CSRF-Token': '<%= csrfToken %>'
                        },
                        body: JSON.stringify({ currentPassword }),
                        signal // Pass the signal to the request
@@ -358,7 +382,8 @@
             const response = await fetch('/update-username', {
                method: 'POST',
                headers: {
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': '<%= csrfToken %>'
                },
                body: JSON.stringify({ currentUsername, newUsername })
             });

@@ -352,10 +352,10 @@
      
      // Add null checks before calling contains()
      if (userMenuButton && dropdownMenu) {
-       if (!userMenuButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
-         dropdownMenu.classList.add('hidden');
-         dropdownMenu.style.transform = 'scale(0.95)';
-         dropdownMenu.style.opacity = '0';
+     if (!userMenuButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+       dropdownMenu.classList.add('hidden');
+       dropdownMenu.style.transform = 'scale(0.95)';
+       dropdownMenu.style.opacity = '0';
        }
      }
    });
@@ -478,53 +478,53 @@
             const sidebar = document.getElementById('sidebar');
             const colcont = document.getElementById('colcont');
             const toggleButton = document.getElementById('sidebar-toggle');
-            
+
             // Only initialize sidebar functionality if sidebar elements exist
             if (sidebar && colcont && toggleButton) {
-               function setCookie(name, value, days) {
-                  const date = new Date();
-                  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-                  const expires = "expires=" + date.toUTCString();
-                  document.cookie = name + "=" + value + ";" + expires + ";path=/";
+            function setCookie(name, value, days) {
+               const date = new Date();
+               date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+               const expires = "expires=" + date.toUTCString();
+               document.cookie = name + "=" + value + ";" + expires + ";path=/";
+            }
+            function getCookie(name) {
+               const nameEQ = name + "=";
+               const ca = document.cookie.split(';');
+               for(let i = 0; i < ca.length; i++) {
+                  let c = ca[i];
+                  while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                  if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
                }
-               function getCookie(name) {
-                  const nameEQ = name + "=";
-                  const ca = document.cookie.split(';');
-                  for(let i = 0; i < ca.length; i++) {
-                     let c = ca[i];
-                     while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-                     if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-                  }
-                  return null;
-               }
-               const sidebarState = getCookie('sidebar-collapsed');
-               if (sidebarState === 'true') {
-                  sidebar.classList.add('collapsed');
-                  colcont.classList.add('colcont');
-               } else {
-                  sidebar.classList.remove('collapsed');
-                  colcont.classList.remove('colcont');
-               }
-               toggleButton.addEventListener('click', () => {
-                  sidebar.classList.toggle('collapsed');
-                  colcont.classList.toggle('colcont');
-                  const isCollapsed = sidebar.classList.contains('collapsed');
-                  setCookie('sidebar-collapsed', isCollapsed, 7);
-               });
+               return null;
+            }
+            const sidebarState = getCookie('sidebar-collapsed');
+            if (sidebarState === 'true') {
+               sidebar.classList.add('collapsed');
+               colcont.classList.add('colcont');
+            } else {
+               sidebar.classList.remove('collapsed');
+               colcont.classList.remove('colcont');
+            }
+            toggleButton.addEventListener('click', () => {
+               sidebar.classList.toggle('collapsed');
+               colcont.classList.toggle('colcont');
+               const isCollapsed = sidebar.classList.contains('collapsed');
+               setCookie('sidebar-collapsed', isCollapsed, 7);
+            });
 
-               const mobileToggleButton = document.getElementById('mobile-sidebar-toggle');
+            const mobileToggleButton = document.getElementById('mobile-sidebar-toggle');
                if (mobileToggleButton && sidebar) {
-                  mobileToggleButton.addEventListener('click', () => {
-                     sidebar.classList.toggle('open');
-                     if (sidebar.classList.contains('open')) {
-                        mobileToggleButton.classList.add('right-4');
-                        mobileToggleButton.classList.remove('left-4');
-                     } else {
-                        mobileToggleButton.classList.add('left-4');
-                        mobileToggleButton.classList.remove('right-4');
-                     }
-                  });
-               }
+               mobileToggleButton.addEventListener('click', () => {
+                  sidebar.classList.toggle('open');
+                  if (sidebar.classList.contains('open')) {
+                     mobileToggleButton.classList.add('right-4');
+                     mobileToggleButton.classList.remove('left-4');
+                  } else {
+                     mobileToggleButton.classList.add('left-4');
+                     mobileToggleButton.classList.remove('right-4');
+                  }
+               });
+            }
             }
             // Remove the warning - sidebar elements are optional
          });

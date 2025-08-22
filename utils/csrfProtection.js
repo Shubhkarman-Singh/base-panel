@@ -56,9 +56,9 @@ class CSRFProtection {
       const csrfTokens = (await db.get("csrf_tokens")) || {};
       const tokenData = csrfTokens[token];
 
-      if (!tokenData) {
-        return false;
-      }
+    if (!tokenData) {
+      return false;
+    }
 
       // Verify token belongs to this session
       if (tokenData.sessionId !== sessionId) {
@@ -67,24 +67,24 @@ class CSRFProtection {
 
       // Check if token is expired (1 hour for security)
       const maxAge = 60 * 60 * 1000; // 1 hour
-      if (Date.now() - tokenData.timestamp > maxAge) {
+    if (Date.now() - tokenData.timestamp > maxAge) {
         delete csrfTokens[token];
         await db.set("csrf_tokens", csrfTokens);
-        return false;
-      }
+      return false;
+    }
 
       // One-time use only - no reuse allowed
       if (tokenData.used) {
-        return false;
-      }
+      return false;
+    }
 
       // Mark token as used
-      tokenData.used = true;
+    tokenData.used = true;
       tokenData.usedAt = Date.now();
       csrfTokens[token] = tokenData;
       await db.set("csrf_tokens", csrfTokens);
 
-      return true;
+    return true;
     } catch (error) {
       log.error("CSRF token validation error:", error);
       return false;
@@ -108,8 +108,8 @@ class CSRFProtection {
         if (now - data.timestamp <= maxAge) {
           validTokens[token] = data;
         } else {
-          cleaned++;
-        }
+        cleaned++;
+      }
       }
 
       if (cleaned > 0) {
@@ -139,8 +139,8 @@ class CSRFProtection {
             }
             try {
               const token = await this.createToken(req.session.id);
-              res.locals.csrfToken = token;
-              next();
+            res.locals.csrfToken = token;
+            next();
             } catch (error) {
               log.error('CSRF token creation error:', error);
               next();
@@ -150,8 +150,8 @@ class CSRFProtection {
           // Always generate a fresh token for each request
           try {
             const token = await this.createToken(req.session.id);
-            res.locals.csrfToken = token;
-            next();
+          res.locals.csrfToken = token;
+          next();
           } catch (error) {
             log.error('CSRF token creation error:', error);
             next();
@@ -256,8 +256,8 @@ class CSRFProtection {
       const csrfTokens = (await db.get("csrf_tokens")) || {};
       const count = Object.keys(csrfTokens).length;
       await db.set("csrf_tokens", {});
-      log.warn(`Cleared all ${count} CSRF tokens`);
-      return count;
+    log.warn(`Cleared all ${count} CSRF tokens`);
+    return count;
     } catch (error) {
       log.error("Error clearing CSRF tokens:", error);
       return 0;

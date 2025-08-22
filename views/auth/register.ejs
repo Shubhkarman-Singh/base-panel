@@ -87,6 +87,21 @@
               <div class="mt-2"></div>
               <span class="text-red-600 pt-4 font-normal text-sm">CAPTCHA verification error. Please try again.</span>
             <% } %>
+
+            <% if (req.query.err && req.query.err == "CSRFTokenMissing") { %>
+              <div class="mt-2"></div>
+              <span class="text-red-600 pt-4 font-normal text-sm">Security token missing. Please refresh the page and try again.</span>
+            <% } %>
+
+            <% if (req.query.err && req.query.err == "CSRFValidationFailed") { %>
+              <div class="mt-2"></div>
+              <span class="text-red-600 pt-4 font-normal text-sm">Security validation failed. Please refresh the page and try again.</span>
+            <% } %>
+
+            <% if (req.query.err && req.query.err == "SessionRequired") { %>
+              <div class="mt-2"></div>
+              <span class="text-red-600 pt-4 font-normal text-sm">Session expired. Please refresh the page and try again.</span>
+            <% } %>
           </form>
         </div>
       </div>

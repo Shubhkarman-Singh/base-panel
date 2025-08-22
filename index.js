@@ -51,7 +51,7 @@ const { db } = require("./handlers/db.js");
 const translationMiddleware = require("./handlers/translation");
 const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
-const { createLoginLimiter, createPasswordResetLimiter } = require("./utils/advancedRateLimit.js");
+const { createLoginLimiter, createPasswordResetLimiter, createRegistrationLimiter } = require("./utils/advancedRateLimit.js");
 const { addCSRFToken, validateCSRF } = require("./utils/csrfProtection.js");
 const helmet = require("helmet");
 const theme = require("./storage/theme.json");
@@ -132,9 +132,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://www.google.com", "https://www.gstatic.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdn.jsdelivr.net", "https://api.fontshare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdn.fontshare.com", "data:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://www.google.com", "https://www.gstatic.com", "https://cdn.tailwindcss.com"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
       connectSrc: ["'self'", "ws:", "wss:"],
       frameSrc: ["'self'", "https://www.google.com"],
@@ -168,46 +168,101 @@ app.use(validateCSRF());
 // Comprehensive rate limiting configuration
 const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 300, // Limit each IP to 300 requests per windowMs (20 requests per minute)
   message: {
     error: "Too many requests from this IP, please try again later.",
     retryAfter: "15 minutes"
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Skip validation warnings in development
+  skipSuccessfulRequests: false, // Count all requests
   validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if behind proxy, otherwise use IP
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
 });
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 auth attempts per windowMs
+  max: 10, // Limit each IP to 10 auth attempts per windowMs
   message: {
     error: "Too many authentication attempts, please try again later.",
     retryAfter: "15 minutes"
   },
   skipSuccessfulRequests: true, // Don't count successful requests
   validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
 });
 
 const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Higher limit for API endpoints
+  max: 500, // Reasonable limit for API endpoints (33 requests per minute)
   message: {
     error: "API rate limit exceeded, please try again later.",
     retryAfter: "15 minutes"
   },
+  skipSuccessfulRequests: false, // Count all API requests
   validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    // For API requests, use API key if available, otherwise use IP
+    const apiKey = req.headers['x-api-key'] || req.headers['authorization'];
+    if (apiKey) {
+      return `api_${apiKey}`;
+    }
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
 });
 
 const strictRateLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10, // Very strict for sensitive operations
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 5, // Very strict for sensitive operations (1 request per minute)
   message: {
     error: "Rate limit exceeded for sensitive operation, please try again later.",
-    retryAfter: "1 minute"
+    retryAfter: "5 minutes"
   },
+  skipSuccessfulRequests: false, // Count all attempts
   validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
+});
+
+const adminRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: 20, // Moderate limit for admin operations
+  message: {
+    error: "Too many admin operations, please try again later.",
+    retryAfter: "10 minutes"
+  },
+  skipSuccessfulRequests: false, // Count all admin operations
+  validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    // For admin routes, use user ID if authenticated, otherwise use IP
+    if (req.user && req.user.userId) {
+      return `admin_${req.user.userId}`;
+    }
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
+});
+
+const fileUploadRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 50, // Limit file uploads to 50 per hour
+  message: {
+    error: "Too many file uploads, please try again later.",
+    retryAfter: "1 hour"
+  },
+  skipSuccessfulRequests: false, // Count all upload attempts
+  validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    if (req.user && req.user.userId) {
+      return `upload_${req.user.userId}`;
+    }
+    return req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+  },
 });
 
 // Apply general rate limiting to all requests
@@ -223,6 +278,12 @@ const passwordResetLimiter = rateLimit({
   },
   skipSuccessfulRequests: false, // Count all attempts
   validate: configManager.get("mode") !== 'development',
+  keyGenerator: (req) => {
+    // Rate limit by IP and email combination for better security
+    const email = req.body.email || 'unknown';
+    const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.ip || req.connection.remoteAddress;
+    return `reset_${ip}_${email}`;
+  },
 });
 
 // Apply specific rate limiting to auth routes
@@ -235,12 +296,19 @@ app.use('/2fa', authRateLimiter);
 app.use('/auth/login', createLoginLimiter());
 app.use('/login', createLoginLimiter());
 
+// Apply registration rate limiting
+app.use('/auth/register', createRegistrationLimiter());
+app.use('/register', createRegistrationLimiter());
+
 // Apply password reset rate limiting
 app.use('/auth/reset-password', createPasswordResetLimiter());
 app.use('/change-password', passwordResetLimiter);
 
 // Apply API rate limiting
 app.use('/api', apiRateLimiter);
+
+// Apply admin rate limiting
+app.use('/admin', adminRateLimiter);
 
 // Apply strict rate limiting to sensitive admin operations
 app.use('/admin/users/create', strictRateLimiter);
@@ -251,6 +319,10 @@ app.use('/admin/settings', strictRateLimiter);
 app.use('/update-username', strictRateLimiter);
 app.use('/verify-2fa', strictRateLimiter);
 app.use('/disable-2fa', strictRateLimiter);
+
+// Apply file upload rate limiting
+app.use('/instance', fileUploadRateLimiter);
+app.use('/upload', fileUploadRateLimiter);
 
 /**
  * Generates a cryptographically secure random string.
@@ -287,8 +359,19 @@ function replaceRandomValues(obj) {
   }
 }
 
-// Configuration is now handled entirely through environment variables
-// See .env.example for configuration options
+/**
+ * DEPRECATED: Updates the config.json file by replacing "random" values with random strings.
+ * This function is deprecated in favor of environment variable configuration.
+ * Use the migration tool: node utils/migrateSecurity.js
+ */
+async function updateConfig() {
+  // This function is deprecated - configuration should now use environment variables
+  // Run: node utils/migrateSecurity.js to migrate to secure configuration
+  log.info("updateConfig() is deprecated. Use environment variables for configuration.");
+}
+
+// Skip automatic config update - use environment variables instead
+// updateConfig();
 
 function getLanguages() {
   return fs.readdirSync(__dirname + "/lang").map((file) => file.split(".")[0]);
@@ -361,7 +444,7 @@ if (configManager.get("mode") === "production") {
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     next();
   });
-  
+
   // Dynamic pages: no-store
   app.use((req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
@@ -445,4 +528,11 @@ app.listen(configManager.get("port"), () =>
 app.use(ErrorHandler.middleware);
 
 // 404 handler
-app.get("*", ErrorHandler.notFound);
+app.get("*", async function (req, res) {
+  res.render("errors/404", {
+    req,
+    name: (await db.get("name")) || "Impulse",
+  });
+});
+
+
