@@ -1,0 +1,24 @@
+[
+    { "version": "0.0.1", "status": "alpha", "codename": "Erevos",   "branch": "alpha" },
+    { "version": "0.0.2", "status": "alpha", "codename": "Nytheris", "branch": "alpha" },
+    { "version": "0.0.3", "status": "alpha", "codename": "Veynor",   "branch": "alpha" },
+    { "version": "0.0.4", "status": "alpha", "codename": "Kryvex",   "branch": "alpha" },
+    { "version": "0.0.5", "status": "alpha", "codename": "Zerath",   "branch": "alpha" },
+    { "version": "0.0.6", "status": "alpha", "codename": "Mythros",  "branch": "alpha" },
+    { "version": "0.0.7", "status": "alpha", "codename": "Xyphra",   "branch": "alpha" },
+    { "version": "0.0.8", "status": "alpha", "codename": "Thryne",   "branch": "alpha" },
+    { "version": "0.0.9", "status": "alpha", "codename": "Ozyth",    "branch": "alpha" },
+  
+    { "version": "0.1.0", "status": "beta",  "codename": "Dravon",   "branch": "beta" },
+    { "version": "0.2.0", "status": "beta",  "codename": "Caelith",  "branch": "beta" },
+    { "version": "0.3.0", "status": "beta",  "codename": "Voryn",    "branch": "beta" },
+    { "version": "0.4.0", "status": "beta",  "codename": "Skarnel",  "branch": "beta" },
+    { "version": "0.5.0", "status": "beta",  "codename": "Zephyros", "branch": "beta" },
+    { "version": "0.6.0", "status": "beta",  "codename": "Cindral",  "branch": "beta" },
+    { "version": "0.7.0", "status": "beta",  "codename": "Obryss",   "branch": "beta" },
+    { "version": "0.8.0", "status": "beta",  "codename": "Kythera",  "branch": "beta" },
+    { "version": "0.9.0", "status": "beta",  "codename": "Droskan",  "branch": "beta" },
+  
+    { "version": "1.0.0", "status": "stable", "codename": "Aetherion", "branch": "stable" }
+  ]
+  

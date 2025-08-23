@@ -29,7 +29,7 @@
               </select>
             </div>
             <div class="flex items-center gap-2">
-              <button id="sortAsc" class="bg-blue-600 text-white rounded-xl px-4 py-1.5 hover:bg-blue-700 transition">Sort Ascending</button>
+              <button id="sortAsc" class="bg-neutral-700/10 text-white rounded-xl px-4 py-1.5 hover:bg-blue-700 transition">Sort Ascending</button>
               <button id="sortDesc" class="bg-blue-600 text-white rounded-xl px-4 py-1.5 hover:bg-blue-700 transition">Sort Descending</button>
             </div>
           </div>
@@ -112,6 +112,19 @@
 
       tableBody.innerHTML = '';
       rows.forEach(row => tableBody.appendChild(row));
+      
+      // Update button states
+      if (ascending) {
+        sortAsc.classList.remove('bg-neutral-700/10');
+        sortAsc.classList.add('bg-blue-600');
+        sortDesc.classList.remove('bg-blue-600');
+        sortDesc.classList.add('bg-neutral-700/10');
+      } else {
+        sortDesc.classList.remove('bg-neutral-700/10');
+        sortDesc.classList.add('bg-blue-600');
+        sortAsc.classList.remove('bg-blue-600');
+        sortAsc.classList.add('bg-neutral-700/10');
+      }
     }
 
     actionFilter.addEventListener('change', applyFilters);
@@ -119,6 +132,8 @@
     sortAsc.addEventListener('click', () => sortTable(true));
     sortDesc.addEventListener('click', () => sortTable(false));
 
+    // Initialize with newest first (descending)
+    sortTable(false);
     applyFilters();
   });
 </script>

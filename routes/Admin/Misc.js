@@ -37,6 +37,10 @@ router.get("/admin/misc/auditlogs", isAdmin, async (req, res) => {
   try {
     let audits = await db.get("audits");
     audits = audits ? JSON.parse(audits) : [];
+    
+    // Sort audits by timestamp (newest first)
+    audits.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
     res.render("admin/misc/auditlogs", {
       req,
       user: req.user,

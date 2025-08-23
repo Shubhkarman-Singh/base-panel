@@ -136,7 +136,7 @@ app.use(helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net", "https://cdn.fontshare.com", "data:"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://www.google.com", "https://www.gstatic.com", "https://cdn.tailwindcss.com"],
       imgSrc: ["'self'", "data:", "https:", "http:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
+      connectSrc: ["'self'", "ws:", "wss:", "https://api.github.com"],
       frameSrc: ["'self'", "https://www.google.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: configManager.get("mode") === 'production' ? [] : null

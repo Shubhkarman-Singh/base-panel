@@ -36,34 +36,173 @@
          </dl>
           <div class="bg-neutral-700/10 rounded-xl pb-4 mt-5 shadow sm:p-6">
             <script>
-                fetch('https://atqr.pages.dev/impulse.json')
-                  .then(response => response.json())
-                  .then(data => {
-                    const currentVersion = '<%= version %>';
-                    const latestVersion = data.impulse_canary.panel_latest;
-                    const versionSpan = document.getElementById('currentVersion');
-                    const releaseSpan = document.getElementById('releaseInfo');
-                    const versionStatusSpan = document.getElementById('versionStatus');
-            
-                    versionSpan.textContent = currentVersion;
-            
-                    if (currentVersion === latestVersion) {
-                      versionStatusSpan.textContent = '<%= req.translations.runningLatestVersion %>';
-                    } else {
-                      const link = document.createElement('a');
-                      link.href = 'https://github.com/impulseOSS/panel/releases/tag/' + latestVersion;
-                      link.classList.add('text-amber-500', 'transition', 'hover:text-amber-600', 'font-medium');
-                      link.textContent = '<%= req.translations.here %>';
-            
-                      const linkText = document.createTextNode(`<%= req.translations.newReleaseImpulse1 %> ${latestVersion} <%= req.translations.newReleaseImpulse2 %> `);
-                      versionStatusSpan.appendChild(linkText);
-                      versionStatusSpan.appendChild(link);
-                      versionStatusSpan.appendChild(document.createTextNode(' <%= req.translations.newReleaseImpulse3 %>'));
-                      versionStatusSpan.classList.add('text-amber-500', 'pt-2');
+                // Version updater script v2.0 - Fixed branch variable references
+                // Function to parse version string
+                function parseVersion(version) {
+                    if (!version || typeof version !== 'string') {
+                        return { major: 0, minor: 0, patch: 0, original: '0.0.0' };
                     }
+                    
+                    const cleanVersion = version.replace('v', '');
+                    const parts = cleanVersion.split('.');
+                    return {
+                        major: parseInt(parts[0]) || 0,
+                        minor: parseInt(parts[1]) || 0,
+                        patch: parseInt(parts[2]) || 0,
+                        original: cleanVersion
+                    };
+                }
+
+                // Function to classify version type
+                function classifyVersion(version) {
+                    const versionInfo = getVersionInfo(version);
+                    return versionInfo.status;
+                }
+
+                // Function to compare versions
+                function compareVersions(version1, version2) {
+                    const v1 = parseVersion(version1);
+                    const v2 = parseVersion(version2);
+                    
+                    if (v1.major !== v2.major) return v1.major - v2.major;
+                    if (v1.minor !== v2.minor) return v1.minor - v2.minor;
+                    return v1.patch - v2.patch;
+                }
+
+                // Function to get version type label
+                function getVersionTypeLabel(type) {
+                    switch(type) {
+                        case 'alpha': return '<%= req.translations.versionAlpha || "Alpha" %>';
+                        case 'beta': return '<%= req.translations.versionBeta || "Beta" %>';
+                        case 'stable': return '<%= req.translations.versionStable || "Stable" %>';
+                        default: return '<%= req.translations.versionUnknown || "Unknown" %>';
+                    }
+                }
+
+                // Function to get version type color
+                function getVersionTypeColor(type) {
+                    switch(type) {
+                        case 'alpha': return 'text-red-500';
+                        case 'beta': return 'text-yellow-500';
+                        case 'stable': return 'text-green-500';
+                        default: return 'text-gray-500';
+                    }
+                }
+
+                // Load version codenames
+                const versionCodenames = JSON.parse('<%- versionCodenames %>');
+                
+                // Function to get version info (codename and status)
+                function getVersionInfo(version) {
+                    const cleanVersion = version.replace('v', '');
+                    const versionInfo = versionCodenames.find(v => v.version === cleanVersion);
+                    return versionInfo || { codename: 'Unknown', status: 'unknown' };
+                }
+                
+                // Function to get codename for version (backward compatibility)
+                function getVersionCodename(version) {
+                    return getVersionInfo(version).codename;
+                }
+
+                // Fetch releases from GitHub API (with cache busting)
+                fetch('https://api.github.com/repos/ImpulseOSS/panel/releases?per_page=10&_=' + Date.now())
+                  .then(response => {
+                    if (!response.ok) {
+                      throw new Error('Failed to fetch releases');
+                    }
+                    return response.json();
+                  })
+                                     .then(releases => {
+                     if (!Array.isArray(releases)) {
+                       console.error('GitHub API did not return an array of releases');
+                       const versionStatusSpan = document.getElementById('versionStatus');
+                       if (versionStatusSpan) {
+                         versionStatusSpan.textContent = '<%= req.translations.errorFetchingReleases || "Error fetching releases" %>';
+                         versionStatusSpan.classList.add('text-red-500', 'pt-2');
+                       }
+                       return;
+                     }
+                                         const currentVersion = '<%= version %>';
+                     const versionSpan = document.getElementById('currentVersion');
+                     const versionStatusSpan = document.getElementById('versionStatus');
+                     const versionTypeTagSpan = document.getElementById('versionTypeTag');
+                     
+                     // Check if elements exist before proceeding
+                     if (!versionSpan || !versionStatusSpan || !versionTypeTagSpan) {
+                       console.error('Required elements not found');
+                       return;
+                     }
+                     
+                     // Update current version display with codename only (no branch duplication)
+                     const currentVersionInfo = getVersionInfo(currentVersion);
+                     const currentCodename = currentVersionInfo.codename;
+                     const currentVersionType = classifyVersion(currentVersion);
+                     const currentTypeLabel = getVersionTypeLabel(currentVersionType);
+                     const currentTypeColor = getVersionTypeColor(currentVersionType);
+                     
+                     versionSpan.innerHTML = currentVersion + ' <span class="text-blue-400">(' + currentCodename + ')</span>';
+                     let bgStyle = '';
+                     if (currentTypeColor === 'text-red-500') bgStyle = 'style="background-color: rgba(239, 68, 68, 0.2);"';
+                     if (currentTypeColor === 'text-yellow-500') bgStyle = 'style="background-color: rgba(234, 179, 8, 0.2);"';
+                     if (currentTypeColor === 'text-green-500') bgStyle = 'style="background-color: rgba(0, 255, 0, 0.2);"';
+                     if (currentTypeColor === 'text-gray-500') bgStyle = 'style="background-color: rgba(107, 114, 128, 0.2);"';
+                     
+                     versionTypeTagSpan.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium ' + currentTypeColor + '" ' + bgStyle + '>' + currentTypeLabel + '</span>';
+                     
+                     if (releases.length === 0) {
+                       versionStatusSpan.textContent = 'unknown';
+                       return;
+                     }
+                    
+                                                              // Get the latest release
+                     const latestRelease = releases[0];
+                     
+                     // Try to extract version from tag_name or name
+                     let latestVersion = latestRelease.tag_name;
+                     
+                     // If tag_name is not a valid version (like "Alpha"), try to extract from name
+                     if (!latestVersion.match(/^v?\d+\.\d+\.\d+/)) {
+                       const nameMatch = latestRelease.name.match(/v?(\d+\.\d+\.\d+)/);
+                       if (nameMatch) {
+                         latestVersion = nameMatch[1]; // Use the version number without 'v' prefix
+                       }
+                     }
+                     
+                     const latestVersionType = classifyVersion(latestVersion);
+                     const latestVersionInfo = getVersionInfo(latestVersion);
+                     const latestCodename = latestVersionInfo.codename;
+                    
+                                         // Compare versions using semantic versioning
+                     if (compareVersions(currentVersion, latestVersion) >= 0) {
+                       versionStatusSpan.textContent = 'latest';
+                     } else {
+                       versionStatusSpan.textContent = 'outdated';
+                       
+                       // Add update notification below
+                       const updateNotification = document.createElement('div');
+                       updateNotification.classList.add('text-amber-500', 'pt-2', 'text-sm');
+                       
+                       const link = document.createElement('a');
+                       link.href = latestRelease.html_url;
+                       link.classList.add('text-amber-500', 'transition', 'hover:text-amber-600', 'font-medium');
+                       link.textContent = '<%= req.translations.here %>';
+                       
+                       const linkText = document.createTextNode('<%= req.translations.newReleaseImpulse1 %> ' + latestVersion + ' <span class="text-blue-400">(' + latestCodename + ')</span> <%= req.translations.newReleaseImpulse2 %> ');
+                       updateNotification.appendChild(linkText);
+                       updateNotification.appendChild(link);
+                       updateNotification.appendChild(document.createTextNode(' <%= req.translations.newReleaseImpulse3 %>'));
+                       
+                       versionStatusSpan.parentNode.appendChild(updateNotification);
+                     }
                   })
                   .catch(error => {
-                    console.error('Error fetching latest version:', error);
+                    console.error('Error fetching releases:', error);
+                    const versionStatusSpan = document.getElementById('versionStatus');
+                    const versionTypeTagSpan = document.getElementById('versionTypeTag');
+                    if (versionStatusSpan && versionTypeTagSpan) {
+                      versionStatusSpan.textContent = 'error';
+                      versionTypeTagSpan.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-md text-xs font-medium text-gray-500" style="background-color: rgba(107, 114, 128, 0.2);">unknown</span>';
+                    }
                   });
               </script>
              <% if (settings.logoType === 'link' && settings.logoLink) { %>
@@ -72,8 +211,10 @@
                 <img src="/assets/logo.png" class="h-24" onerror="this.src='/assets/default-logo.svg'">
              <% } %>
              <p class="text-sm mt-1 font-normal text-neutral-300 mb-2">
-                <%= req.translations.sysInfoText %> <span id="currentVersion"></span>. <span id="versionStatus"></span>
+                You are running <span id="versionStatus"></span> Impulse Panel version <span id="currentVersion" class="font-medium text-white"></span>. <span id="versionTypeTag"></span>
               </p>
+             
+
           </div>
           <div class="mt-5 flex justify-between space-x-8">
             <a href="https://impulse.dev" class="block rounded-xl bg-blue-600 px-3 py-2 text-center text-sm font-medium text-white shadow-lg hover:bg-blue-700 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 w-full">
