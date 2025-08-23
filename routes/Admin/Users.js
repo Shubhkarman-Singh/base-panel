@@ -19,11 +19,38 @@ async function doesEmailExist(email) {
 }
 
 router.get("/admin/users", isAdmin, async (req, res) => {
-  res.render("admin/users", {
-    req,
-    user: req.user,
-    users: (await db.get("users")) || [],
-  });
+  try {
+    const users = (await db.get("users")) || [];
+    
+    // Add instance count and 2FA status for each user
+    const usersWithInstanceCounts = await Promise.all(
+      users.map(async (user) => {
+        try {
+          const userInstances = (await db.get(`${user.userId}_instances`)) || [];
+          return {
+            ...user,
+            instanceCount: userInstances.length,
+            twoFactorEnabled: user.twoFAEnabled || false
+          };
+        } catch (error) {
+          return {
+            ...user,
+            instanceCount: 0,
+            twoFactorEnabled: user.twoFAEnabled || false
+          };
+        }
+      })
+    );
+
+    res.render("admin/users", {
+      req,
+      user: req.user,
+      users: usersWithInstanceCounts,
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 router.post("/users/create", isAdmin, async (req, res) => {

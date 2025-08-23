@@ -1,7 +1,7 @@
 <%- include('../components/template') %>
 <main id="content">
   <div class="bg-transparent">
-    <div class="sm:flex sm:items-center px-8 pt-4">
+    <div class="sm:flex sm:items-center px-4 sm:px-8 pt-4">
       <div class="sm:flex-auto">
         <h1 class="text-base font-medium leading-6 text-white"><%= req.translations.users %></h1>
         <p class="mt-1 tracking-tight text-sm text-neutral-500">
@@ -18,228 +18,196 @@
         </button>
       </div>
     </div>
-    <div id="nodeTable" class="mt-6 w-full">
-      <table class="mt-6 w-full whitespace-nowrap text-left">
-        <colgroup>
-          <col class="w-full sm:w-4/12" />
-          <col class="lg:w-4/12" />
-          <col class="lg:w-2/12" />
-          <col class="lg:w-4/12" />
-          <col class="lg:w-1/12" />
-          <col class="lg:w-1/12" />
-        </colgroup>
-        <thead class="border-b border-white/5 text-sm leading-6 text-white">
-          <tr>
-            <th
-              scope="col"
-              class="py-2 pl-0 pr-8 font-medium sm:pl-80 lg:pl-8"
-            >
-            <%= req.translations.name %>
-            </th>
-            <th
-            scope="col"
-            class="py-2 pl-0 pr-8 font-medium sm:pl-80 lg:pl-8"
-          >
-          <%= req.translations.email %>
-          </th>
-            <th scope="col" class="py-2 pl-0 pr-8 font-medium sm:table-cell">
-              <%= req.translations.information %>
-            </th>
-            <th
-              scope="col"
-              class="py-2 pl-0 pr-8 font-medium md:table-cell lg:pr-20"
-            >
-            <%= req.translations.role %>
-            </th>
-            <th
-              scope="col"
-              class="py-2 pl-0 pr-8 font-medium md:table-cell lg:pr-20"
-            >
-            <%= req.translations.verificationStatus %>
-            </th>
-            <th
-              scope="col"
-              class="py-2 pl-0 pr-8 font-medium md:table-cell lg:pr-20"
-            >
-            <%= req.translations.actions %>
-            </th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-white/5">
-          <% users.forEach(function(user) { %>
-          <tr>
-            <td class="py-4 pl-4 pr-8 sm:pl-8 lg:pl-8">
-              <div class="flex items-center gap-x-4">
-                <img
-                  class="h-8 w-8 rounded-xl bg-transparent"
-                  src="https://api.dicebear.com/9.x/thumbs/svg?seed=<%= user.username %>"
-                  alt=""
-                />
-
-                <div class="truncate text-sm font-medium leading-6 text-white">
-                  <%= user.username %>
+    <div id="nodeTable" class="mt-6 w-full px-4 sm:px-8">
+      <div class="overflow-x-auto">
+        <table class="w-full whitespace-nowrap text-left min-w-full">
+          <colgroup>
+            <col class="w-auto" />
+            <col class="hidden sm:table-column w-auto" />
+            <col class="hidden sm:table-column w-auto" />
+            <col class="hidden md:table-column w-auto" />
+            <col class="hidden sm:table-column w-auto" />
+            <col class="hidden sm:table-column w-auto" />
+          </colgroup>
+          <thead class="border-b border-white/5 text-sm leading-6 text-white">
+            <tr>
+              <th scope="col" class="py-2 pl-0 pr-4 font-medium sm:pr-8">
+                <%= req.translations.name %>
+              </th>
+              <th scope="col" class="hidden py-2 pl-0 pr-4 font-medium sm:table-cell sm:pr-8">
+                <%= req.translations.email %>
+              </th>
+              <th scope="col" class="hidden py-2 pl-0 pr-4 font-medium sm:table-cell sm:pr-8">
+                <%= req.translations.information %>
+              </th>
+              <th scope="col" class="hidden py-2 pl-0 pr-4 font-medium md:table-cell sm:pr-8">
+                <%= req.translations.role %>
+              </th>
+              <th scope="col" class="hidden py-2 pl-0 pr-4 font-medium sm:table-cell sm:pr-8">
+                Servers
+              </th>
+              <th scope="col" class="hidden py-2 pl-0 pr-4 font-medium sm:table-cell sm:pr-8">
+                2FA
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <% users.forEach(function(user) { %>
+            <tr class="hover:bg-white/5 transition-colors duration-150 cursor-pointer user-row" data-user-id="<%= user.userId %>">
+              <td class="py-4 pl-0 pr-4 sm:pr-8">
+                <div class="flex items-center gap-x-3 sm:gap-x-4">
+                  <img
+                    class="h-8 w-8 rounded-xl bg-transparent flex-shrink-0"
+                    src="https://api.dicebear.com/9.x/thumbs/svg?seed=<%= user.username %>"
+                    alt=""
+                  />
+                  <div class="truncate text-sm font-medium leading-6 text-white min-w-0">
+                    <%= user.username %>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td class="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
-              <div class="flex gap-x-3 pl-8">
-                <div
-                  class="rounded-xl bg-neutral-800/40 px-2 py-1 text-xs font-medium text-neutral-400 ring-1 ring-inset ring-white/10"
-                >
-                  <%= user.email %>
-                </div>
-              </div>
-            </td>
-            <td class="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
-              <div class="flex gap-x-3">
-                <div
-                  class="rounded-xl bg-neutral-800/40 px-2 py-1 text-xs font-medium text-neutral-400 ring-1 ring-inset ring-white/10"
-                >
-                  <%= user.userId %>
-                </div>
-              </div>
-            </td>
-
-            <% if (user.admin==true) { %>
-            <td
-              class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-neutral-400 md:table-cell lg:pr-20"
-            >
-            <%= req.translations.admin %>
-            </td>
-            <% } else if (user.admin==false) { %>
-            <td
-              class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-neutral-400 md:table-cell lg:pr-20"
-            >
-            <%= req.translations.regularUserRole %>
-            </td>
-            <% } %>
-
-            <% if (user.verified==true) { %>
-              <td
-                class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-green-500 md:table-cell lg:pr-20"
-              >
-              <%= req.translations.verifiedStatus %>
               </td>
-              <% } else if (user.verified==false) { %>
-              <td
-                class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-red-500 md:table-cell lg:pr-20"
-              >
-              <%= req.translations.unverifiedStatus %>
+              <td class="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                <div class="flex gap-x-3">
+                  <div class="rounded-xl bg-neutral-800/40 px-2 py-1 text-xs font-medium text-neutral-400 ring-1 ring-inset ring-white/10 truncate max-w-full flex items-center gap-x-2">
+                    <%= user.email %>
+                    <% if (user.verified == true) { %>
+                      <svg class="w-3 h-3 text-green-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path opacity="0.5" d="M9.59236 3.20031C9.34886 3.40782 9.2271 3.51158 9.09706 3.59874C8.79896 3.79854 8.46417 3.93721 8.1121 4.00672C7.95851 4.03705 7.79903 4.04977 7.48008 4.07522L7.48007 4.07523C6.67869 4.13918 6.278 4.17115 5.94371 4.28923C5.17051 4.56233 4.56233 5.17051 4.28923 5.94371C4.17115 6.278 4.13918 6.67869 4.07523 7.48007L4.07522 7.48008C4.04977 7.79903 4.03705 7.95851 4.00672 8.1121C3.93721 8.46417 3.79854 8.79896 3.59874 9.09706C3.51158 9.2271 3.40781 9.34887 3.20028 9.59239L3.20027 9.5924C2.67883 10.2043 2.4181 10.5102 2.26522 10.8301C1.91159 11.57 1.91159 12.43 2.26522 13.1699C2.41811 13.4898 2.67883 13.7957 3.20027 14.4076L3.20031 14.4076C3.4078 14.6511 3.51159 14.7729 3.59874 14.9029C3.79854 15.201 3.93721 15.5358 4.00672 15.8879C4.03705 16.0415 4.04977 16.201 4.07522 16.5199L4.07523 16.5199C4.13918 17.3213 4.17115 17.722 4.28923 18.0563C4.56233 18.8295 5.17051 19.4377 5.94371 19.7108C6.27799 19.8288 6.67867 19.8608 7.48 19.9248L7.48008 19.9248C7.79903 19.9502 7.95851 19.963 8.1121 19.9933C8.46417 20.0628 8.79896 20.2015 9.09706 20.4013C9.22711 20.4884 9.34887 20.5922 9.5924 20.7997C10.2043 21.3212 10.5102 21.5819 10.8301 21.7348C11.57 22.0884 12.43 22.0884 13.1699 21.7348C13.4898 21.5819 13.7957 21.3212 14.4076 20.7997C14.6511 20.5922 14.7729 20.4884 14.9029 20.4013C15.201 20.2015 15.5358 20.0628 15.8879 19.9933C16.0415 19.963 16.201 19.9502 16.5199 19.9248L16.52 19.9248C17.3213 19.8608 17.722 19.8288 18.0563 19.7108C18.8295 19.4377 19.4377 18.8295 19.7108 18.0563C19.8288 17.722 19.8608 17.3213 19.9248 16.52L19.9248 16.5199C19.9502 16.201 19.963 16.0415 19.9933 15.8879C20.0628 15.5358 20.2015 15.201 20.4013 14.9029C20.4884 14.7729 20.5922 14.6511 20.7997 14.4076C21.3212 13.7957 21.5819 13.4898 21.7348 13.1699C22.0884 12.43 22.0884 11.57 21.7348 10.8301C21.5819 10.5102 21.3212 10.2043 20.7997 9.5924C20.5922 9.34887 20.4884 9.22711 20.4013 9.09706C20.2015 8.79896 20.0628 8.46417 19.9933 8.1121C19.963 7.95851 19.9502 7.79903 19.9248 7.48008L19.9248 7.48C19.8608 6.67867 19.8288 6.27799 19.7108 5.94371C19.4377 5.17051 18.8295 4.56233 18.0563 4.28923C17.722 4.17115 17.3213 4.13918 16.5199 4.07523L16.5199 4.07522C16.201 4.04977 16.0415 4.03705 15.8879 4.00672C15.5358 3.93721 15.201 3.79854 14.9029 3.59874C14.7729 3.51158 14.6511 3.40781 14.4076 3.20027C13.7957 2.67883 13.4898 2.41811 13.1699 2.26522C12.43 1.91159 11.57 1.91159 10.8301 2.26522C10.5102 2.4181 10.2043 2.67883 9.5924 3.20027L9.59236 3.20031Z" fill="currentColor"/>
+                        <path d="M16.3736 9.86298C16.6914 9.54515 16.6914 9.02984 16.3736 8.71201C16.0557 8.39417 15.5404 8.39417 15.2226 8.71201L10.3723 13.5623L8.77753 11.9674C8.4597 11.6496 7.94439 11.6496 7.62656 11.9674C7.30873 12.2853 7.30873 12.8006 7.62656 13.1184L9.79685 15.2887C10.1147 15.6065 10.63 15.6065 10.9478 15.2887L16.3736 9.86298Z" fill="currentColor"/>
+                      </svg>
+                    <% } %>
+                  </div>
+                </div>
               </td>
-            <% } else { %>
-            <td
-              class="hidden py-4 pl-0 pr-8 text-sm leading-6 text-neutral-400 md:table-cell lg:pr-20"
-            >
-            <%= req.translations.error %>
-            </td>
-            <% } %>
-            <td
-              class="py-4 pl-0 pr-4 text-sm leading-6 sm:pr-8 lg:pr-20 flex gap-3"
-            >
-              <div class="inner">
-                <a href="/admin/users/edit/<%= user.userId %>"
-                  ><button
-                    id="editButton"
-                    type="button"
-                    class="block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  >
-                  <%= req.translations.edit %>
-                  </button></a
-                >
-              </div>
-              <div class="inner">
-                <button
-                  id="removeButton"
-                  type="button"
-                  class="removeButton block rounded-xl bg-red-600 px-3 py-2 text-center text-sm font-medium text-white shadow-lg hover:bg-red-500 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  data-user-id="<%= user.userId %>"                
-                  >
-                  <%= req.translations.remove %>
-                </button>
-              </div>
-            </td>
-          </tr>
-          <% }); %>
-        </tbody>
-      </table>
+              <td class="hidden py-4 pl-0 pr-4 sm:table-cell sm:pr-8">
+                <div class="flex gap-x-3">
+                  <div class="rounded-xl bg-neutral-800/40 px-2 py-1 text-xs font-medium text-neutral-400 ring-1 ring-inset ring-white/10 truncate max-w-full">
+                    <%= user.userId %>
+                  </div>
+                </div>
+              </td>
+
+              <% if (user.admin==true) { %>
+              <td class="hidden py-4 pl-0 pr-4 text-sm leading-6 text-neutral-400 md:table-cell sm:pr-8">
+                <%= req.translations.admin %>
+              </td>
+              <% } else if (user.admin==false) { %>
+              <td class="hidden py-4 pl-0 pr-4 text-sm leading-6 text-neutral-400 md:table-cell sm:pr-8">
+                <%= req.translations.regularUserRole %>
+              </td>
+              <% } %>
+              
+              <td class="hidden py-4 pl-0 pr-4 text-sm leading-6 text-neutral-300 sm:table-cell sm:pr-8">
+                <div class="flex items-center gap-x-2">
+                  <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g opacity="0.5">
+                      <path d="M14 21H10C6.22876 21 4.34315 21 3.17157 19.8284C2 18.6569 2 16.7712 2 13V12.75H22V13C22 16.7712 22 18.6569 20.8284 19.8284C19.6569 21 17.7712 21 14 21Z" fill="currentColor"/>
+                      <path d="M10 3H14C17.7712 3 19.6569 3 20.8284 4.17157C22 5.34315 22 7.22876 22 11V11.25H2V11C2 7.22876 2 5.34315 3.17157 4.17157C4.34315 3 6.22876 3 10 3Z" fill="currentColor"/>
+                    </g>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M22 12.75H2V11.25H22V12.75Z" fill="currentColor"/>
+                    <path d="M12.75 16.5C12.75 16.0858 13.0858 15.75 13.5 15.75H18C18.4142 15.75 18.75 16.0858 18.75 16.5C18.75 16.9142 18.4142 17.25 18 17.25H13.5C13.0858 17.25 12.75 16.9142 12.75 16.5Z" fill="currentColor"/>
+                    <path d="M12.75 7.5C12.75 7.08579 13.0858 6.75 13.5 6.75H18C18.4142 6.75 18.75 7.08579 18.75 7.5C18.75 7.91421 18.4142 8.25 18 8.25H13.5C13.0858 8.25 12.75 7.91421 12.75 7.5Z" fill="currentColor"/>
+                    <path d="M6 18.25C5.58579 18.25 5.25 17.9142 5.25 17.5V15.5C5.25 15.0858 5.58579 14.75 6 14.75C6.41421 14.75 6.75 15.0858 6.75 15.5V17.5C6.75 17.9142 6.41421 18.25 6 18.25Z" fill="currentColor"/>
+                    <path d="M6 9.25C5.58579 9.25 5.25 8.91421 5.25 8.5V6.5C5.25 6.08579 5.58579 5.75 6 5.75C6.41421 5.75 6.75 6.08579 6.75 6.5V8.5C6.75 8.91421 6.41421 9.25 6 9.25Z" fill="currentColor"/>
+                    <path d="M9 18.25C8.58579 18.25 8.25 17.9142 8.25 17.5V15.5C8.25 15.0858 8.58579 14.75 9 14.75C9.41421 14.75 9.75 15.0858 9.75 15.5V17.5C9.75 17.9142 9.41421 18.25 9 18.25Z" fill="currentColor"/>
+                    <path d="M9 9.25C8.58579 9.25 8.25 8.91421 8.25 8.5V6.5C8.25 6.08579 8.58579 5.75 9 5.75C9.41421 5.75 9.75 6.08579 9.75 6.5V8.5C9.75 8.91421 9.41421 9.25 9 9.25Z" fill="currentColor"/>
+                  </svg>
+                  <span class="font-medium text-white">
+                    <%= user.instanceCount || 0 %>
+                  </span>
+                </div>
+              </td>
+              
+              <td class="hidden py-4 pl-0 pr-4 text-sm leading-6 text-neutral-300 sm:table-cell sm:pr-8">
+                <div class="flex items-center gap-x-2">
+                  <% if (user.twoFactorEnabled == true) { %>
+                    <svg class="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path opacity="0.5" d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z" fill="currentColor"/>
+                      <path d="M8 17C8.55228 17 9 16.5523 9 16C9 15.4477 8.55228 15 8 15C7.44772 15 7 15.4477 7 16C7 16.5523 7.44772 17 8 17Z" fill="currentColor"/>
+                      <path d="M12 17C12.5523 17 13 16.5523 13 16C13 15.4477 12.5523 15 12 15C11.4477 15 11 15.4477 11 16C11 16.5523 11.4477 17 12 17Z" fill="currentColor"/>
+                      <path d="M17 16C17 16.5523 16.5523 17 16 17C15.4477 17 15 16.5523 15 16C15 15.4477 15.4477 15 16 15C16.5523 15 17 15.4477 17 16Z" fill="currentColor"/>
+                      <path d="M6.75 8C6.75 5.10051 9.10051 2.75 12 2.75C14.8995 2.75 17.25 5.10051 17.25 8V10.0036C17.8174 10.0089 18.3135 10.022 18.75 10.0546V8C18.75 4.27208 15.7279 1.25 12 1.25C8.27208 1.25 5.25 4.27208 5.25 8V10.0546C5.68651 10.022 6.18264 10.0089 6.75 10.0036V8Z" fill="currentColor"/>
+                    </svg>
+                  <% } else { %>
+                    <svg class="w-4 h-4 text-red-500" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path opacity="0.5" d="M2 16C2 13.1716 2 11.7574 2.87868 10.8787C3.75736 10 5.17157 10 8 10H16C18.8284 10 20.2426 10 21.1213 10.8787C22 11.7574 22 13.1716 22 16C22 18.8284 22 20.2426 21.1213 21.1213C20.2426 22 18.8284 22 16 22H8C5.17157 22 3.75736 22 2.87868 21.1213C2 20.2426 2 18.8284 2 16Z" fill="currentColor"/>
+                      <path d="M8 17C8.55228 17 9 16.5523 9 16C9 15.4477 8.55228 15 8 15C7.44772 15 7 15.4477 7 16C7 16.5523 7.44772 17 8 17Z" fill="currentColor"/>
+                      <path d="M12 17C12.5523 17 13 16.5523 13 16C13 15.4477 12.5523 15 12 15C11.4477 15 11 15.4477 11 16C11 16.5523 11.4477 17 12 17Z" fill="currentColor"/>
+                      <path d="M17 16C17 16.5523 16.5523 17 16 17C15.4477 17 15 16.5523 15 16C15 15.4477 15.4477 15 16 15C16.5523 15 17 15.4477 17 16Z" fill="currentColor"/>
+                      <path d="M6.75 8C6.75 5.10051 9.10051 2.75 12 2.75C14.4453 2.75 16.5018 4.42242 17.0846 6.68694C17.1879 7.08808 17.5968 7.32957 17.9979 7.22633C18.3991 7.12308 18.6405 6.7142 18.5373 6.31306C17.788 3.4019 15.1463 1.25 12 1.25C8.27208 1.25 5.25 4.27208 5.25 8V10.0546C5.68651 10.022 6.18264 10.0089 6.75 10.0036V8Z" fill="currentColor"/>
+                    </svg>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div id="nodeForm" class="mt-6 px-8 w-full hidden">
-      <form>
-        <label class="text-neutral-400 text-sm tracking-tight mb-2"
-          ><%= req.translations.username %>:</label
-        >
+    <div id="nodeForm" class="mt-6 px-4 sm:px-8 w-full hidden">
+      <form class="max-w-md">
+        <label class="text-neutral-400 text-sm tracking-tight mb-2 block">
+          <%= req.translations.username %>:
+        </label>
         <input
           id="userName"
           type="text"
           name="username"
-          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
+          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
           placeholder="<%= req.translations.usernamePlaceholder %>"
         />
+        
+        <label class="text-neutral-400 text-sm tracking-tight mb-2 block">
+          <%= req.translations.email %>:
+        </label>
         <input
           id="email"
           type="email"
           name="email"
-          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
+          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
           placeholder="<%= req.translations.emailPlaceholder %>"
         />
 
-        <label class="text-neutral-400 text-sm tracking-tight mb-2"
-          ><%= req.translations.passwordLabel %>:</label
-        >
+        <label class="text-neutral-400 text-sm tracking-tight mb-2 block">
+          <%= req.translations.passwordLabel %>:
+        </label>
         <input
           id="userPass"
           type="password"
           name="password"
-          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
+          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
           placeholder="******"
         />
 
-        <label class="text-neutral-400 text-sm tracking-tight mb-2"
-          ><%= req.translations.admin %>:</label
-        >
+        <label class="text-neutral-400 text-sm tracking-tight mb-2 block">
+          <%= req.translations.admin %>:
+        </label>
         <select
           id="userAdmin"
           name="admin"
-          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
+          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
         >
           <option value="true"><%= req.translations.true %></option>
           <option value="false"><%= req.translations.false %></option>
         </select>
 
-        <label class="text-neutral-400 text-sm tracking-tight mb-2"><%= req.translations.verifiedStatus %>:</label>
+        <label class="text-neutral-400 text-sm tracking-tight mb-2 block">
+          <%= req.translations.verifiedStatus %>:
+        </label>
         <select
           id="userVerified"
           name="verified"
-          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
+          class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-full items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10"
         >
         <option value="true"><%= req.translations.true %></option>
         <option value="false"><%= req.translations.false %></option>
         </select>
-        <!-- <label class="text-neutral-400 text-sm tracking-tight mb-2">Tags:</label>
-         <input id="nodeTags" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="Tag 1 - Tag 2 - Tag 3">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">RAM (GB):</label>
-         <input id="nodeRam" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="8">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">Disk (GB):</label>
-         <input id="nodeDisk" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="40">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">Processor:</label>
-         <input id="nodeProcessor" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="AMD EPYC 9454 - 16 Threads">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">IP Address:</label>
-         <input id="nodeAddress" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="192.168.1.1 or my.hostnamehere.com">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">Daemon Port:</label>
-         <input id="nodePort" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="8080">
-
-         <label class="text-neutral-400 text-sm tracking-tight mb-2">Access Key:</label>
-         <input id="nodeApiKey" class="rounded-xl focus:ring-transparent focus:border-transparent text-white text-sm mt-2 mb-6 w-96 items-center transition justify-left gap-16 hover:bg-white/5 px-4 py-2 flex border-white/5 bg-neutral-600/20 placeholder:text-white/20 text-white border border-black/10" placeholder="impulsed_xxxxxxxxxxxxxxxx"> -->
 
         <button
           id="createNodeBtn"
           type="button"
-          class="block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2"
+          class="block rounded-xl <%= theme['button-color'] %> px-3 py-2 text-center text-sm font-medium shadow-lg transition focus:outline focus:outline-2 focus:outline-offset-2 w-full sm:w-auto"
         >
         <%= req.translations.create %>
         </button>
@@ -306,40 +274,18 @@
         );
     });
 </script>
-<!-- remove -->
-<script>
-  document.querySelectorAll('.removeButton').forEach(button => {
-    button.addEventListener('click', function() {
-      const userId = this.dataset.userId;
-      const totalUsers = document.querySelectorAll('.removeButton').length;
-      if (totalUsers === 1) {
-        alert('<%= req.translations.databaseCannotDelete %>');
-        return;
-      }
-      const currentUserId = '<%= user.userId %>';
-      if (userId === currentUserId) {
-        alert('<%= req.translations.userCannotDelete %>');
-        return;
-      }
-      const confirmation = confirm('<%= req.translations.userDeletingConfirmation %>');
-      if (!confirmation) return;
 
-      fetch('/user/delete', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': '<%= csrfToken %>'
-        },
-        body: JSON.stringify({ userId })
-      })
-      .then(response => {
-        if (response.ok) {
-          window.location.reload();
-        } else {
-          throw new Error('Failed to delete user');
+<!-- Row click handler for navigation to edit page -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all user rows
+    document.querySelectorAll('.user-row').forEach(row => {
+      row.addEventListener('click', function() {
+        const userId = this.getAttribute('data-user-id');
+        if (userId) {
+          window.location.href = `/admin/users/edit/${userId}`;
         }
-      })
-      .catch(error => alert('<%= req.translations.userDeletingError %>' + error.message));
+      });
     });
   });
 </script>
